@@ -17,6 +17,7 @@ public Meal() {
    this.foodItems = new ArrayList<>();
 }
 
+// Getters and setters
 public int getMealId() { return mealId; }
 public void setMealId(int mealId) { this.mealId = mealId; }
 public int getUserId() { return userId; }
@@ -32,6 +33,7 @@ public void addFoodItem(FoodItem item) {
    foodItems.add(item);
 }
 
+// Calculate total nutritional values for the meal
 public double getTotalCalories() {
    return foodItems.stream().mapToDouble(FoodItem::getCalculatedCalories).sum();
 }
@@ -52,8 +54,10 @@ public double getTotalFiber() {
    return foodItems.stream().mapToDouble(FoodItem::getCalculatedFiber).sum();
 }
 
+// Get food group distribution
 public String getFoodGroupDistribution() {
-   return ""; 
+   // Implementation would analyze food items and return distribution
+   return ""; // Placeholder
 }
 
 }

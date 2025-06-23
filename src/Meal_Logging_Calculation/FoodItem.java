@@ -15,6 +15,7 @@ public class FoodItem {
  private double fats;
  private double fiber;
  
+ // Getters and setters
  public int getFoodId() { return foodId; }
  public void setFoodId(int foodId) { this.foodId = foodId; }
  public String getDescription() { return description; }
@@ -36,6 +37,7 @@ public class FoodItem {
  public double getFiber() { return fiber; }
  public void setFiber(double fiber) { this.fiber = fiber; }
  
+ // Calculate nutritional values for the actual quantity consumed
  public double getCalculatedCalories() {
      return (calories / 100) * quantity;
  }

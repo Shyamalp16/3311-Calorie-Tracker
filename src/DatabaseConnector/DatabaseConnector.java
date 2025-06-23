@@ -13,7 +13,7 @@ public class DatabaseConnector {
 			String username = "root";
 			String password = "Password";
 			connection = DriverManager.getConnection(url, username, password);
-			initializeDatabase();
+			initializeDatabase(); // Calls the method below
 		} catch (Exception e) {
 			System.err.println("Database connection failed:");
 			e.printStackTrace();

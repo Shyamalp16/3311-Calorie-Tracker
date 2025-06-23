@@ -116,6 +116,7 @@ public class SwapRecommendation {
              
              newMeal.addFoodItem(swappedItem);
          } else {
+             // Keep original item
              newMeal.addFoodItem(item);
          }
      }

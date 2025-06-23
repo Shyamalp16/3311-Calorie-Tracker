@@ -18,6 +18,7 @@ public Meal logMeal(Meal meal) {
       PreparedStatement mealStmt = conn.prepareStatement(mealSql, Statement.RETURN_GENERATED_KEYS);
       PreparedStatement itemStmt = conn.prepareStatement(itemSql)) {
      
+     // Insert meal record
      mealStmt.setInt(1, meal.getUserId());
      mealStmt.setString(2, meal.getMealType());
      mealStmt.setDate(3, Date.valueOf(meal.getMealDate()));

@@ -13,6 +13,7 @@ public class SwapCriteria {
     private GoalType secondaryGoal;
     private double intensity; // Percentage or absolute value
     
+    // Getters and setters
     public GoalType getPrimaryGoal() { return primaryGoal; }
     public void setPrimaryGoal(GoalType primaryGoal) { this.primaryGoal = primaryGoal; }
     public GoalType getSecondaryGoal() { return secondaryGoal; }

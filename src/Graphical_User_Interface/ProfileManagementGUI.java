@@ -16,7 +16,6 @@ public class ProfileManagementGUI extends JFrame implements ActionListener {
     private ProfileManager profileManager;
     private int currentUserId;
     
-    // Form components
     private JTextField nameField;
     private JPasswordField passwordField;
     private JPasswordField confirmPasswordField;
@@ -63,26 +62,21 @@ public class ProfileManagementGUI extends JFrame implements ActionListener {
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
 
-        // Main panel with border layout
         JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
         mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        // Form panel
         JPanel formPanel = new JPanel();
         formPanel.setLayout(new GridLayout(0, 2, 5, 5));
         formPanel.setBorder(BorderFactory.createTitledBorder("Profile Information"));
 
-        // User ID field
         formPanel.add(new JLabel("User ID (for update/view):"));
         userIdField = new JTextField();
         formPanel.add(userIdField);
 
-        // Name field
         formPanel.add(new JLabel("Full Name:"));
         nameField = new JTextField();
         formPanel.add(nameField);
 
-        // Password fields (only for create/update)
         formPanel.add(new JLabel("Password:"));
         passwordField = new JPasswordField();
         formPanel.add(passwordField);
@@ -91,27 +85,22 @@ public class ProfileManagementGUI extends JFrame implements ActionListener {
         confirmPasswordField = new JPasswordField();
         formPanel.add(confirmPasswordField);
 
-        // Gender combo box
         formPanel.add(new JLabel("Gender:"));
         genderCombo = new JComboBox<>(new String[]{"Male", "Female", "Other"});
         formPanel.add(genderCombo);
 
-        // Birth date field
         formPanel.add(new JLabel("Birth Date (YYYY-MM-DD):"));
         birthDateField = new JTextField();
         formPanel.add(birthDateField);
 
-        // Height field
         formPanel.add(new JLabel("Height (cm):"));
         heightField = new JTextField();
         formPanel.add(heightField);
 
-        // Weight field
         formPanel.add(new JLabel("Weight (kg):"));
         weightField = new JTextField();
         formPanel.add(weightField);
 
-        // Activity level combo box
         formPanel.add(new JLabel("Activity Level:"));
         activityLevelCombo = new JComboBox<>(new String[]{
             "Sedentary", 
@@ -122,7 +111,6 @@ public class ProfileManagementGUI extends JFrame implements ActionListener {
         });
         formPanel.add(activityLevelCombo);
 
-        // Button panel
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
         createButton = new JButton("Create Profile");
         createButton.addActionListener(this);
@@ -136,12 +124,10 @@ public class ProfileManagementGUI extends JFrame implements ActionListener {
         viewButton.addActionListener(this);
         buttonPanel.add(viewButton);
 
-        // Result area
         resultArea = new JTextArea(10, 40);
         resultArea.setEditable(false);
         JScrollPane scrollPane = new JScrollPane(resultArea);
 
-        // Add components to main panel
         mainPanel.add(formPanel, BorderLayout.NORTH);
         mainPanel.add(buttonPanel, BorderLayout.CENTER);
         mainPanel.add(scrollPane, BorderLayout.SOUTH);
@@ -215,7 +201,6 @@ public class ProfileManagementGUI extends JFrame implements ActionListener {
             try {
                 String password = passwordChars.length > 0 ? new String(passwordChars) : null;
                 
-                // Update the existing profile with new values
                 UserProfile updatedProfile = createProfileFromInputs();
                 updatedProfile.setUserId(userId);
                 
@@ -243,7 +228,6 @@ public class ProfileManagementGUI extends JFrame implements ActionListener {
             
             if (profile != null) {
                 resultArea.setText(profileToString(profile));
-                // Load the profile into form fields
                 nameField.setText(profile.getName());
                 genderCombo.setSelectedItem(capitalize(profile.getGender()));
                 birthDateField.setText(profile.getBirthDate().toString());
@@ -261,36 +245,30 @@ public class ProfileManagementGUI extends JFrame implements ActionListener {
     private UserProfile createProfileFromInputs() throws DateTimeParseException, IllegalArgumentException {
         UserProfile profile = new UserProfile();
         
-        // Validate and set name
         String name = nameField.getText().trim();
         if (name.isEmpty()) {
             throw new IllegalArgumentException("Name cannot be empty");
         }
         profile.setName(name);
         
-        // Set gender
         profile.setGender(genderCombo.getSelectedItem().toString().toLowerCase());
         
-        // Parse and set birth date
         String birthDateStr = birthDateField.getText().trim();
         LocalDate birthDate = LocalDate.parse(birthDateStr, DateTimeFormatter.ISO_DATE);
         profile.setBirthDate(birthDate);
         
-        // Parse and set height
         double height = Double.parseDouble(heightField.getText().trim());
         if (height <= 0) {
             throw new IllegalArgumentException("Height must be positive");
         }
         profile.setHeight(height);
         
-        // Parse and set weight
         double weight = Double.parseDouble(weightField.getText().trim());
         if (weight <= 0) {
             throw new IllegalArgumentException("Weight must be positive");
         }
         profile.setWeight(weight);
         
-        // Set activity level
         profile.setActivityLevel(activityLevelCombo.getSelectedItem().toString().toLowerCase());
         
         return profile;

@@ -31,7 +31,6 @@ public Meal logMeal(Meal meal) {
                  int mealId = rs.getInt(1);
                  meal.setMealId(mealId);
                  
-                 // Insert meal items
                  for (FoodItem item : meal.getFoodItems()) {
                      itemStmt.setInt(1, mealId);
                      itemStmt.setInt(2, item.getFoodId());

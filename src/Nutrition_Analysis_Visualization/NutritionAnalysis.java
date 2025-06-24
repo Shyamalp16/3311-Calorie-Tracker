@@ -28,8 +28,6 @@ public class NutritionAnalysis {
  }
  
  public static double calculateCFGCompliance(List<Meal> meals) {
-     // Simplified compliance calculation
-     // In a real implementation, this would compare against CFG recommendations
      double totalItems = meals.stream()
          .mapToInt(meal -> meal.getFoodItems().size())
          .sum();
@@ -45,7 +43,6 @@ public class NutritionAnalysis {
  }
  
  private static boolean isHealthyFoodGroup(String foodGroup) {
-     // Simplified check - real implementation would use CFG guidelines
      return !foodGroup.equalsIgnoreCase("processed foods") &&
             !foodGroup.equalsIgnoreCase("sweets");
  }

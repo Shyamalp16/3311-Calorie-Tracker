@@ -7,11 +7,6 @@ import Model.NutriSciApp;
 import User_Profile_Management.ProfileManager;
 import java.awt.*;
 
-
-
-
-
-
 public class Main_GUI {
  private ProfileManagementGUI profileGUI;
  private MealLoggingGUI mealGUI;
@@ -34,7 +29,6 @@ public class Main_GUI {
      MealService mealService = new MealService();
      
      profileGUI = new ProfileManagementGUI(profileManager, currentUserId);
-     // Initialize other GUIs when needed
      
      new NutriSciApp().run();
  }
@@ -84,7 +78,6 @@ public class Main_GUI {
  
  private void showMealGUI() {
      if (mealGUI == null) {
-         // Lazy initialization
          mealGUI = new MealLoggingGUI(currentUserId);
      }
      mealGUI.setVisible(true);
@@ -92,7 +85,6 @@ public class Main_GUI {
  
  private void showVisualizationGUI() {
      if (vizGUI == null) {
-         // Lazy initialization
          vizGUI = new VisualizationGUI(currentUserId);
      }
      vizGUI.setVisible(true);

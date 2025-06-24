@@ -33,7 +33,6 @@ public class SwapRecommendation {
              item.setFats(rs.getDouble("fats"));
              item.setFiber(rs.getDouble("fiber"));
              
-             // Check if this item meets the swap criteria
              if (meetsSwapCriteria(originalItem, item, criteria)) {
                  potentialSwaps.add(item);
              }
@@ -46,13 +45,11 @@ public class SwapRecommendation {
  }
  
  private boolean meetsSwapCriteria(FoodItem original, FoodItem potential, SwapCriteria criteria) {
-     // Calculate differences per 100g
      double calDiff = potential.getCalories() - original.getCalories();
      double fiberDiff = potential.getFiber() - original.getFiber();
      double proteinDiff = potential.getProtein() - original.getProtein();
      double carbDiff = potential.getCarbs() - original.getCarbs();
      
-     // Check primary goal
      boolean meetsPrimary = false;
      switch (criteria.getPrimaryGoal()) {
          case INCREASE_FIBER:
@@ -69,7 +66,6 @@ public class SwapRecommendation {
              break;
      }
      
-     // Check secondary goal if exists
      if (criteria.getSecondaryGoal() == null) {
          return meetsPrimary;
      }
@@ -101,7 +97,6 @@ public class SwapRecommendation {
      
      for (FoodItem item : originalMeal.getFoodItems()) {
          if (item.getFoodId() == originalItem.getFoodId()) {
-             // Replace with new item
              FoodItem swappedItem = new FoodItem();
              swappedItem.setFoodId(newItem.getFoodId());
              swappedItem.setDescription(newItem.getDescription());
@@ -116,7 +111,6 @@ public class SwapRecommendation {
              
              newMeal.addFoodItem(swappedItem);
          } else {
-             // Keep original item
              newMeal.addFoodItem(item);
          }
      }

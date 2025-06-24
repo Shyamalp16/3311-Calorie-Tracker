@@ -30,10 +30,8 @@ public class NutriSciApp {
  private ChartGenerator chartGenerator;
  
  public NutriSciApp() {
-     // Initialize database connection
      DatabaseConnector dbConnector = DatabaseConnector.getInstance();
      
-     // Initialize services
      profileManager = new ProfileManager();
      mealService = new MealService();
      swapEngine = new SwapRecommendation();
@@ -61,7 +59,6 @@ public class NutriSciApp {
      System.out.println("Created profile for: " + profile.getName());
      System.out.println("Daily calorie needs: " + profile.calculateDailyCalories());
      
-     // 2. Log a meal
      Meal breakfast = new Meal();
      breakfast.setUserId(profile.getUserId());
      breakfast.setMealType("breakfast");
@@ -69,34 +66,31 @@ public class NutriSciApp {
      
      FoodItem eggs = mealService.findFoodItem("egg");
      if (eggs != null) {
-         eggs.setQuantity(100); // grams
+         eggs.setQuantity(100);
          breakfast.addFoodItem(eggs);
      }
      
      FoodItem bread = mealService.findFoodItem("whole wheat bread");
      if (bread != null) {
-         bread.setQuantity(50); // grams
+         bread.setQuantity(50);
          breakfast.addFoodItem(bread);
      }
      
      mealService.logMeal(breakfast);
      System.out.println("Logged breakfast with " + breakfast.getTotalCalories() + " calories");
      
-     // 3. Find food swaps
      SwapCriteria criteria = new SwapCriteria();
      criteria.setPrimaryGoal(SwapCriteria.GoalType.REDUCE_CALORIES);
-     criteria.setIntensity(10); // Reduce by at least 10%
+     criteria.setIntensity(10); 
      
      List<FoodItem> swaps = swapEngine.findPotentialSwaps(bread, criteria);
      if (!swaps.isEmpty()) {
          System.out.println("Potential swap for " + bread.getDescription() + ": " + 
              swaps.get(0).getDescription() + " (" + swaps.get(0).getCalories() + " kcal)");
          
-         // 4. Apply swap and create new meal
          Meal swappedMeal = swapEngine.applySwapToMeal(breakfast, bread, swaps.get(0));
          System.out.println("After swap: " + swappedMeal.getTotalCalories() + " calories");
          
-         // 5. Visualize nutrition data
          Map<String, Double> nutritionData = new HashMap<>();
          nutritionData.put("Calories", breakfast.getTotalCalories());
          nutritionData.put("Protein", breakfast.getTotalProtein());

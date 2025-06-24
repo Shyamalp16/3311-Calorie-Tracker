@@ -34,9 +34,9 @@ private JFreeChart createPieChart(ChartData chartData) {
  JFreeChart chart = ChartFactory.createPieChart(
      chartData.getChartTitle(),
      dataset,
-     true, // legend
-     true, // tooltips
-     false // URLs
+     true, 
+     true, 
+     false 
  );
  
  PiePlot plot = (PiePlot) chart.getPlot();
@@ -59,9 +59,9 @@ private JFreeChart createBarChart(ChartData chartData) {
      "Value",
      dataset,
      PlotOrientation.VERTICAL,
-     true, // legend
-     true, // tooltips
-     false // URLs
+     true, 
+     true, 
+     false 
  );
 }
 
@@ -78,9 +78,9 @@ private JFreeChart createLineChart(ChartData chartData) {
      "Value",
      dataset,
      PlotOrientation.VERTICAL,
-     true, // legend
-     true, // tooltips
-     false // URLs
+     true, 
+     true, 
+     false 
  );
 }
 }

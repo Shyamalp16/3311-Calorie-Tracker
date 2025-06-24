@@ -50,7 +50,6 @@ public class AuthService {
             return -1;
         }
         
-        // Check if username exists
         if (usernameExists(username.trim())) {
             return -1;
         }
@@ -90,7 +89,6 @@ public class AuthService {
             return -1;
         }
         
-        // Check if username exists
         if (usernameExists(profile.getName())) {
             return -1;
         }
@@ -135,7 +133,7 @@ public class AuthService {
      */
     private static boolean usernameExists(String username) {
         if (username == null || username.trim().isEmpty()) {
-            return true; // Treat invalid usernames as existing
+            return true; 
         }
         
         String sql = "SELECT user_id FROM users WHERE name = ?";
@@ -148,7 +146,7 @@ public class AuthService {
             
         } catch (SQLException e) {
             e.printStackTrace();
-            return true; // Assume exists if error occurs for safety
+            return true;
         }
     }
     

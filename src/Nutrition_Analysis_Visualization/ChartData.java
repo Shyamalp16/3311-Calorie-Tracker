@@ -13,7 +13,6 @@ public ChartData(String chartTitle, Map<String, Double> data, ChartType chartTyp
    this.chartType = chartType;
 }
 
-// Getters
 public String getChartTitle() { return chartTitle; }
 public Map<String, Double> getData() { return data; }
 public ChartType getChartType() { return chartType; }

@@ -14,7 +14,7 @@ public class ProfileManager {
 	         PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 	        
 	        pstmt.setString(1, profile.getName());
-	        pstmt.setString(2, password); // Add password parameter
+	        pstmt.setString(2, password);
 	        pstmt.setString(3, profile.getGender());
 	        pstmt.setDate(4, Date.valueOf(profile.getBirthDate()));
 	        pstmt.setDouble(5, profile.getHeight());

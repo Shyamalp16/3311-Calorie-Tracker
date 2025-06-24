@@ -22,24 +22,20 @@ protected void initializeCommonUI() {
    gbc.insets = new Insets(5, 5, 5, 5);
    gbc.fill = GridBagConstraints.HORIZONTAL;
    
-   // Username field
    gbc.gridx = 0; gbc.gridy = 0;
    panel.add(new JLabel("Username:"), gbc);
    gbc.gridx = 1;
    usernameField = new JTextField(15);
    panel.add(usernameField, gbc);
-   
-   // Password field
+  
    gbc.gridx = 0; gbc.gridy = 1;
    panel.add(new JLabel("Password:"), gbc);
    gbc.gridx = 1;
    passwordField = new JPasswordField(15);
    panel.add(passwordField, gbc);
    
-   // Add custom fields for subclasses
    addCustomFields(panel, gbc);
    
-   // Button panel
    JPanel buttonPanel = createButtonPanel();
    gbc.gridx = 0; gbc.gridy = getNextRow();
    gbc.gridwidth = 2;

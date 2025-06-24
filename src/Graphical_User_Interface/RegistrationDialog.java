@@ -15,14 +15,12 @@ public class RegistrationDialog extends AuthDialog {
  
  @Override
  protected void addCustomFields(JPanel panel, GridBagConstraints gbc) {
-     // Email field
      gbc.gridx = 0; gbc.gridy = 2;
      panel.add(new JLabel("Email:"), gbc);
      gbc.gridx = 1;
      emailField = new JTextField(15);
      panel.add(emailField, gbc);
      
-     // Confirm password field
      gbc.gridx = 0; gbc.gridy = 3;
      panel.add(new JLabel("Confirm Password:"), gbc);
      gbc.gridx = 1;

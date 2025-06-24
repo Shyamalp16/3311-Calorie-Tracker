@@ -5,7 +5,6 @@ import javax.swing.JFrame;
 public class MealLoggingGUI extends JFrame {
 
 	public MealLoggingGUI(int currentUserId) {
-		// TODO Auto-generated constructor stub
 	}
 
     

@@ -9,7 +9,6 @@ import Meal_Logging_Calculation.MealService;
 public class VisualizationGUI extends JFrame{
 
 	public VisualizationGUI(int currentUserId) {
-		// TODO Auto-generated constructor stub
 	}
 
 

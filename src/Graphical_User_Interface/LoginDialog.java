@@ -14,7 +14,6 @@ public class LoginDialog extends AuthDialog {
  
  @Override
  protected void addCustomFields(JPanel panel, GridBagConstraints gbc) {
-     // No additional fields needed for login
  }
  
  @Override
@@ -63,13 +62,12 @@ public class LoginDialog extends AuthDialog {
      setVisible(false);
      regDialog.setVisible(true);
      
-     // If registration successful, close login dialog
      if (regDialog.isSuccessful()) {
          userId = regDialog.getUserId();
          successful = true;
          dispose();
      } else {
-         setVisible(true); // Show login again if registration cancelled
+         setVisible(true); 
      }
  }
 }

@@ -22,24 +22,20 @@ public class DatabaseConnector {
 
 	private void initializeDatabase() throws SQLException {
 		try (Statement stmt = connection.createStatement()) {
-			// Create Users table
 			stmt.execute("CREATE TABLE IF NOT EXISTS users (" + "user_id INT AUTO_INCREMENT PRIMARY KEY, "
 					+ "name VARCHAR(100) NOT NULL, " + "gender VARCHAR(10), " + "birth_date DATE, " + "height DOUBLE, "
 					+ "weight DOUBLE, " + "activity_level VARCHAR(20), "
 					+ "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
 
-			// Create Meals table
 			stmt.execute("CREATE TABLE IF NOT EXISTS meals (" + "meal_id INT AUTO_INCREMENT PRIMARY KEY, "
 					+ "user_id INT, " + "meal_type VARCHAR(20), " + "meal_date DATE, "
 					+ "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, "
 					+ "FOREIGN KEY (user_id) REFERENCES users(user_id))");
 
-			// Create MealItems table
 			stmt.execute("CREATE TABLE IF NOT EXISTS meal_items (" + "item_id INT AUTO_INCREMENT PRIMARY KEY, "
 					+ "meal_id INT, " + "food_id INT, " + "quantity DOUBLE, " + "unit VARCHAR(20), "
 					+ "FOREIGN KEY (meal_id) REFERENCES meals(meal_id))");
 
-			// Create FoodNutrients table (from CNF data)
 			stmt.execute("CREATE TABLE IF NOT EXISTS food_nutrients (" + "food_id INT PRIMARY KEY, "
 					+ "description VARCHAR(255), " + "food_group VARCHAR(100), " + "calories DOUBLE, "
 					+ "protein DOUBLE, " + "carbs DOUBLE, " + "fats DOUBLE, " + "fiber DOUBLE)");

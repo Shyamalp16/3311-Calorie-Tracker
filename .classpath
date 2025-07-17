@@ -6,17 +6,17 @@
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="src" path="src"/>
-	<classpathentry kind="lib" path="D:/EECS3311/Project/jcommon-1.0.23.jar">
+	<classpathentry kind="lib" path="C:/Summer 2025/EECS 3311/build/Actual/jcommon-1.0.23.jar">
 		<attributes>
 			<attribute name="module" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="D:/EECS3311/Project/jfreechart-1.0.19.jar">
+	<classpathentry kind="lib" path="C:/Summer 2025/EECS 3311/build/Actual/jfreechart-1.0.19.jar">
 		<attributes>
 			<attribute name="module" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="D:/EECS3311/Project/mysql-connector-j-9.3.0 (1).jar">
+	<classpathentry kind="lib" path="C:/Summer 2025/EECS 3311/build/Actual/mysql-connector-j-9.3.0 (1).jar">
 		<attributes>
 			<attribute name="module" value="true"/>
 		</attributes>

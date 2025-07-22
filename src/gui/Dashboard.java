@@ -4,22 +4,32 @@ import models.User;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
-import org.jfree.chart.plot.PlotOrientation;
-import org.jfree.data.category.DefaultCategoryDataset;
+import org.jfree.chart.plot.PiePlot;
+import org.jfree.data.general.DefaultPieDataset;
 
 import javax.swing.*;
+import javax.swing.border.Border;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import java.awt.*;
 
 public class Dashboard extends JFrame {
 
     private User currentUser;
+    private final Color COLOR_TAB_INACTIVE = new Color(224, 224, 224);
+    private final Color COLOR_TEXT_INACTIVE = new Color(51, 51, 51);
 
-    // Colors and Fonts
-    private final Color bgColor = new Color(45, 45, 45);
-    private final Color primaryColor = new Color(34, 139, 34);
-    private final Color textColor = Color.WHITE;
-    private final Font titleFont = new Font("Arial", Font.BOLD, 24);
-    private final Font labelFont = new Font("Arial", Font.PLAIN, 16);
+    // Styling constants from the mockup
+    private final Color COLOR_PRIMARY = new Color(76, 175, 80);
+    private final Color COLOR_SECONDARY = new Color(33, 150, 243);
+    private final Color COLOR_BACKGROUND = new Color(245, 245, 245);
+    private final Color COLOR_TEXT_LIGHT = Color.WHITE;
+    private final Color COLOR_TEXT_DARK = new Color(51, 51, 51);
+    private final Color COLOR_PANEL_BACKGROUND = new Color(245, 245, 245);
+
+    private final Font FONT_TITLE = new Font("Arial", Font.BOLD, 18);
+    private final Font FONT_SUBTITLE = new Font("Arial", Font.BOLD, 16);
+    private final Font FONT_NORMAL = new Font("Arial", Font.PLAIN, 14);
 
     public Dashboard(User user) {
         this.currentUser = user;
@@ -27,192 +37,397 @@ public class Dashboard extends JFrame {
     }
 
     private void initUI() {
-        setTitle("CleanTracker Dashboard");
-        setSize(900, 700);
+        setTitle("Main Application - Dashboard");
+        setSize(1200, 800); // Increased size for better layout
         setLocationRelativeTo(null);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
-        getContentPane().setBackground(bgColor);
-
-        // Header
-        JPanel headerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        headerPanel.setBackground(primaryColor);
-        headerPanel.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
-        JLabel welcomeLabel = new JLabel("Welcome, " + currentUser.getName() + "!");
-        welcomeLabel.setFont(titleFont);
-        welcomeLabel.setForeground(textColor);
-        headerPanel.add(welcomeLabel);
+        getContentPane().setBackground(COLOR_BACKGROUND);
 
         // Tabbed Pane
         JTabbedPane tabbedPane = new JTabbedPane();
-        tabbedPane.setBackground(bgColor);
-        tabbedPane.setForeground(textColor);
-        tabbedPane.setFont(labelFont);
+        tabbedPane.setFont(FONT_NORMAL);
 
         // Add tabs
-        tabbedPane.addTab("Summary", createSummaryPanel());
+        tabbedPane.addTab("Dashboard", createDashboardPanel());
         tabbedPane.addTab("Log Meal", createLogMealPanel());
-        tabbedPane.addTab("Nutrition Analysis", createAnalysisPanel());
+        tabbedPane.addTab("Food Swaps", createPlaceholderPanel("Food Swaps"));
+        tabbedPane.addTab("Nutrition Analysis", createNutritionAnalysisPanel());
+        tabbedPane.addTab("Canada Food Guide", createCanadaFoodGuidePanel());
 
-        // Main layout
-        setLayout(new BorderLayout());
-        add(headerPanel, BorderLayout.NORTH);
+        // Add change listener for dynamic tab highlighting
+        tabbedPane.addChangeListener(new ChangeListener() {
+            public void stateChanged(ChangeEvent e) {
+                updateTabStyles(tabbedPane);
+            }
+        });
+
+        // Initial style update
+        updateTabStyles(tabbedPane);
+
+
         add(tabbedPane, BorderLayout.CENTER);
-
         setVisible(true);
     }
 
-    private JPanel createSummaryPanel() {
-        JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBackground(bgColor);
-        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(10, 10, 10, 10);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
+    private void updateTabStyles(JTabbedPane tabbedPane) {
+        int selectedIndex = tabbedPane.getSelectedIndex();
+        for (int i = 0; i < tabbedPane.getTabCount(); i++) {
+            if (i == selectedIndex) {
+                tabbedPane.setBackgroundAt(i, COLOR_PRIMARY);
+                tabbedPane.setForegroundAt(i, COLOR_TEXT_LIGHT);
+            } else {
+                tabbedPane.setBackgroundAt(i, COLOR_TAB_INACTIVE);
+                tabbedPane.setForegroundAt(i, COLOR_TEXT_INACTIVE);
+            }
+        }
+    }
 
-        // Consumed Calories
-        JLabel consumedLabel = new JLabel("Consumed Calories:");
-        consumedLabel.setFont(labelFont);
-        consumedLabel.setForeground(textColor);
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        panel.add(consumedLabel, gbc);
+    private JPanel createDashboardPanel() {
+        JPanel dashboardPanel = new JPanel(new BorderLayout(20, 20));
+        dashboardPanel.setBackground(Color.WHITE);
+        dashboardPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-        JLabel consumedValue = new JLabel("1200 kcal"); // Placeholder
-        consumedValue.setFont(labelFont);
-        consumedValue.setForeground(primaryColor);
-        gbc.gridx = 1;
-        panel.add(consumedValue, gbc);
+        // Screen Title
+        JLabel titleLabel = new JLabel("Main Application - Dashboard");
+        titleLabel.setFont(FONT_TITLE);
+        titleLabel.setForeground(COLOR_TEXT_LIGHT);
+        titleLabel.setOpaque(true);
+        titleLabel.setBackground(COLOR_PRIMARY);
+        titleLabel.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
+        dashboardPanel.add(titleLabel, BorderLayout.NORTH);
 
-        // Target Calories
-        JLabel targetLabel = new JLabel("Target Calories:");
-        targetLabel.setFont(labelFont);
-        targetLabel.setForeground(textColor);
-        gbc.gridx = 0;
-        gbc.gridy = 1;
-        panel.add(targetLabel, gbc);
+        // Main content with two columns
+        JPanel contentPanel = new JPanel(new GridLayout(1, 2, 20, 20));
+        contentPanel.setBackground(Color.WHITE);
 
-        JLabel targetValue = new JLabel("2000 kcal"); // Placeholder
-        targetValue.setFont(labelFont);
-        targetValue.setForeground(primaryColor);
-        gbc.gridx = 1;
-        panel.add(targetValue, gbc);
+        contentPanel.add(createLeftColumn());
+        contentPanel.add(createRightColumn());
 
-        return panel;
+        dashboardPanel.add(contentPanel, BorderLayout.CENTER);
+
+        return dashboardPanel;
+    }
+
+    private JPanel createLeftColumn() {
+        JPanel leftPanel = new JPanel();
+        leftPanel.setLayout(new BoxLayout(leftPanel, BoxLayout.Y_AXIS));
+        leftPanel.setBackground(Color.WHITE);
+
+        // Today's Summary
+        JPanel summaryPanel = new JPanel();
+        summaryPanel.setLayout(new BoxLayout(summaryPanel, BoxLayout.Y_AXIS));
+        summaryPanel.setBackground(Color.WHITE);
+        summaryPanel.setBorder(BorderFactory.createTitledBorder("Today's Summary"));
+        summaryPanel.add(new JLabel("Total Calories: 1,850 / 2,000"));
+        summaryPanel.add(new JLabel("Protein: 85g"));
+        summaryPanel.add(new JLabel("Carbs: 220g"));
+        summaryPanel.add(new JLabel("Fat: 65g"));
+        leftPanel.add(summaryPanel);
+
+        leftPanel.add(Box.createRigidArea(new Dimension(0, 20)));
+
+        // Recent Meals
+        JPanel recentMealsPanel = new JPanel();
+        recentMealsPanel.setLayout(new BoxLayout(recentMealsPanel, BoxLayout.Y_AXIS));
+        recentMealsPanel.setBackground(Color.WHITE);
+        recentMealsPanel.setBorder(BorderFactory.createTitledBorder("Recent Meals"));
+
+        recentMealsPanel.add(createMealItem("Breakfast: Oatmeal with berries - 350 cal"));
+        recentMealsPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+        recentMealsPanel.add(createMealItem("Lunch: Chicken salad - 450 cal"));
+        recentMealsPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+        recentMealsPanel.add(createMealItem("Dinner: Pasta with vegetables - 650 cal"));
+        leftPanel.add(recentMealsPanel);
+
+        return leftPanel;
+    }
+
+    private JPanel createMealItem(String description) {
+        JPanel mealPanel = new JPanel(new BorderLayout(10, 0));
+        mealPanel.setBackground(COLOR_PANEL_BACKGROUND);
+        mealPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        JLabel descriptionLabel = new JLabel(description);
+        descriptionLabel.setFont(FONT_NORMAL);
+        mealPanel.add(descriptionLabel, BorderLayout.CENTER);
+
+        JButton detailsButton = new JButton("View Nutrition Details");
+        styleButton(detailsButton);
+        mealPanel.add(detailsButton, BorderLayout.EAST);
+
+        return mealPanel;
+    }
+
+    private JPanel createRightColumn() {
+        JPanel rightPanel = new JPanel();
+        rightPanel.setLayout(new BoxLayout(rightPanel, BoxLayout.Y_AXIS));
+        rightPanel.setBackground(Color.WHITE);
+
+        // Daily Nutrition Chart
+        rightPanel.add(new JLabel("Daily Nutrition Chart"));
+        rightPanel.add(createPieChartPlaceholder());
+
+        rightPanel.add(Box.createRigidArea(new Dimension(0, 20)));
+
+        // Food Guide Adherence
+        rightPanel.add(new JLabel("Food Guide Adherence"));
+        rightPanel.add(createChartPlaceholder("[Bar Chart: CFG Compliance]"));
+
+        return rightPanel;
+    }
+
+    private ChartPanel createPieChartPlaceholder() {
+        DefaultPieDataset dataset = new DefaultPieDataset();
+        dataset.setValue("Protein 20%", 20);
+        dataset.setValue("Carbs 55%", 55);
+        dataset.setValue("Fat 25%", 25);
+
+        JFreeChart pieChart = ChartFactory.createPieChart(
+                null, dataset, false, true, false);
+
+        pieChart.setBackgroundPaint(Color.WHITE);
+        PiePlot plot = (PiePlot) pieChart.getPlot();
+        plot.setBackgroundPaint(Color.WHITE);
+        plot.setOutlinePaint(null);
+        plot.setLabelGenerator(null);
+        plot.setSectionPaint("Protein 20%", new Color(255, 105, 97)); // Red
+        plot.setSectionPaint("Carbs 55%", new Color(97, 168, 255));  // Blue
+        plot.setSectionPaint("Fat 25%", new Color(255, 214, 97));   // Yellow
+
+        ChartPanel chartPanel = new ChartPanel(pieChart);
+        chartPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
+        return chartPanel;
+    }
+
+    private JPanel createChartPlaceholder(String text) {
+        JPanel placeholder = new JPanel(new GridBagLayout());
+        placeholder.setBackground(new Color(249, 249, 249));
+        Border line = BorderFactory.createLineBorder(Color.LIGHT_GRAY);
+        Border empty = BorderFactory.createEmptyBorder(10, 10, 10, 10);
+        placeholder.setBorder(BorderFactory.createCompoundBorder(line, empty));
+        placeholder.add(new JLabel(text));
+        placeholder.setMinimumSize(new Dimension(200, 200));
+        placeholder.setPreferredSize(new Dimension(200, 200));
+        return placeholder;
     }
 
     private JPanel createLogMealPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(bgColor);
-        panel.add(new JLabel("Log Meal Tab - Content Here", SwingConstants.CENTER), BorderLayout.CENTER);
+        JPanel panel = new JPanel(new BorderLayout(10, 10));
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        // Title
+        JLabel titleLabel = new JLabel("Log Meal");
+        titleLabel.setFont(FONT_TITLE);
+        titleLabel.setForeground(COLOR_TEXT_DARK);
+        panel.add(titleLabel, BorderLayout.NORTH);
+
+        // Form for Date and Meal Type
+        JPanel formPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 10));
+        formPanel.setBackground(Color.WHITE);
+
+        formPanel.add(new JLabel("Date:"));
+        JTextField dateField = new JTextField("2025-07-24", 10);
+        formPanel.add(dateField);
+
+        formPanel.add(Box.createHorizontalStrut(20));
+
+        formPanel.add(new JLabel("Meal Type:"));
+        JComboBox<String> mealTypeCombo = new JComboBox<>(new String[]{"Breakfast", "Lunch", "Dinner", "Snack"});
+        formPanel.add(mealTypeCombo);
+
+        // Main content area
+        JPanel contentPanel = new JPanel(new BorderLayout(10, 10));
+        contentPanel.setBackground(Color.WHITE);
+        contentPanel.add(formPanel, BorderLayout.NORTH);
+
+        // Food Items Table
+        String[] columnNames = {"Food Item", "Quantity", "Unit", "Calories"};
+        Object[][] data = {
+                {"Oatmeal", 1, "cup", 150},
+                {"Blueberries", 0.5, "cup", 85},
+                {"Milk", 1, "cup", 150}
+        };
+        JTable table = new JTable(data, columnNames);
+        table.setFont(FONT_NORMAL);
+        table.setRowHeight(25);
+        JScrollPane scrollPane = new JScrollPane(table);
+        contentPanel.add(scrollPane, BorderLayout.CENTER);
+
+        // Add/Remove and Totals Panel
+        JPanel southPanel = new JPanel(new BorderLayout(10, 10));
+        southPanel.setBackground(Color.WHITE);
+
+        // Add food panel
+        JPanel addFoodPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        addFoodPanel.setBackground(Color.WHITE);
+        addFoodPanel.add(new JLabel("Add Food:"));
+        addFoodPanel.add(new JTextField("Search food items...", 20));
+        addFoodPanel.add(new JTextField("Quantity...", 8));
+        JButton addItemButton = new JButton("Add Item");
+        styleButton(addItemButton);
+        addFoodPanel.add(addItemButton);
+        JButton removeItemButton = new JButton("Remove Selected");
+        styleButton(removeItemButton);
+        addFoodPanel.add(removeItemButton);
+
+        southPanel.add(addFoodPanel, BorderLayout.NORTH);
+
+        // Totals and Actions
+        JPanel actionsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 10));
+        actionsPanel.setBackground(Color.WHITE);
+        actionsPanel.add(new JLabel("Total Calories: 385"));
+        JButton saveButton = new JButton("Save Meal");
+        styleButton(saveButton);
+        actionsPanel.add(saveButton);
+        JButton detailsButton = new JButton("View Nutrition Details");
+        styleButton(detailsButton);
+        actionsPanel.add(detailsButton);
+
+        southPanel.add(actionsPanel, BorderLayout.SOUTH);
+
+        contentPanel.add(southPanel, BorderLayout.SOUTH);
+        panel.add(contentPanel, BorderLayout.CENTER);
+
         return panel;
     }
 
-    private JPanel createAnalysisPanel() {
-        JPanel panel = new JPanel(new GridLayout(2, 2, 10, 10)); // Grid for multiple charts
-        panel.setBackground(bgColor);
-        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+    private JPanel createNutritionAnalysisPanel() {
+        JPanel panel = new JPanel(new BorderLayout(20, 20));
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-        // Add different charts
-        panel.add(createPieChartPanel());
-        panel.add(createBarChartPanel());
-        panel.add(createLineChartPanel());
+        // Title
+        JLabel titleLabel = new JLabel("Nutrition Analysis");
+        titleLabel.setFont(FONT_TITLE);
+        panel.add(titleLabel, BorderLayout.NORTH);
+
+        // Top panel for controls
+        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        topPanel.setBackground(Color.WHITE);
+        topPanel.add(new JLabel("Time Period:"));
+        topPanel.add(new JComboBox<>(new String[]{"Last 7 days", "Last 30 days", "Last 3 months"}));
+        panel.add(topPanel, BorderLayout.NORTH);
+
+        // Main content with two columns
+        JPanel contentPanel = new JPanel(new GridLayout(1, 2, 20, 20));
+        contentPanel.setBackground(Color.WHITE);
+
+        // Left Column
+        JPanel leftColumn = new JPanel();
+        leftColumn.setLayout(new BoxLayout(leftColumn, BoxLayout.Y_AXIS));
+        leftColumn.setBackground(Color.WHITE);
+        leftColumn.add(new JLabel("Daily Nutrient Breakdown"));
+        leftColumn.add(createChartPlaceholder("[Pie Chart]"));
+        leftColumn.add(Box.createVerticalStrut(20));
+        leftColumn.add(new JLabel("Average Daily Intake"));
+        leftColumn.add(new JLabel("Calories: 1,850 / 2,000 recommended"));
+        leftColumn.add(new JLabel("<html>Protein: 85g / 75g recommended <font color='green'>✓</font></html>"));
+        leftColumn.add(new JLabel("<html>Fiber: 18g / 25g recommended <font color='orange'>⚠️</font></html>"));
+        leftColumn.add(new JLabel("<html>Sodium: 2,100mg / 2,300mg recommended <font color='green'>✓</font></html>"));
+        contentPanel.add(leftColumn);
+
+        // Right Column
+        JPanel rightColumn = new JPanel();
+        rightColumn.setLayout(new BoxLayout(rightColumn, BoxLayout.Y_AXIS));
+        rightColumn.setBackground(Color.WHITE);
+        rightColumn.add(new JLabel("Trends Over Time"));
+        rightColumn.add(createChartPlaceholder("[Line Chart]"));
+        rightColumn.add(Box.createVerticalStrut(20));
+        rightColumn.add(new JLabel("Top 10 Nutrients"));
+        rightColumn.add(createChartPlaceholder("[Bar Chart]"));
+        contentPanel.add(rightColumn);
+
+        panel.add(contentPanel, BorderLayout.CENTER);
+
+        // Bottom buttons
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        buttonPanel.setBackground(Color.WHITE);
+        JButton exportButton = new JButton("Export Report");
+        styleButton(exportButton);
+        buttonPanel.add(exportButton);
+        JButton goalsButton = new JButton("Set Nutrition Goals");
+        styleButton(goalsButton);
+        buttonPanel.add(goalsButton);
+        panel.add(buttonPanel, BorderLayout.SOUTH);
 
         return panel;
     }
 
-    private ChartPanel createPieChartPanel() {
-        // Dataset for macronutrient breakdown
-        org.jfree.data.general.DefaultPieDataset dataset = new org.jfree.data.general.DefaultPieDataset();
-        dataset.setValue("Protein (40g)", 160);
-        dataset.setValue("Carbs (150g)", 600);
-        dataset.setValue("Fat (50g)", 450);
+    private JPanel createCanadaFoodGuidePanel() {
+        JPanel panel = new JPanel(new BorderLayout(20, 20));
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-        // Create Pie Chart
-        JFreeChart pieChart = ChartFactory.createPieChart(
-                "Macronutrient Split (Calories)",
-                dataset,
-                true, true, false);
+        // Title
+        JLabel titleLabel = new JLabel("Canada Food Guide Adherence");
+        titleLabel.setFont(FONT_TITLE);
+        panel.add(titleLabel, BorderLayout.NORTH);
 
-        // Styling
-        pieChart.setBackgroundPaint(bgColor);
-        pieChart.getTitle().setPaint(textColor);
-        pieChart.getLegend().setBackgroundPaint(bgColor);
-        pieChart.getLegend().setItemPaint(textColor);
-        org.jfree.chart.plot.PiePlot plot = (org.jfree.chart.plot.PiePlot) pieChart.getPlot();
-        plot.setBackgroundPaint(bgColor);
-        plot.setLabelBackgroundPaint(bgColor);
-        plot.setLabelPaint(textColor);
-        plot.setSimpleLabels(true);
+        // Main content with two columns
+        JPanel contentPanel = new JPanel(new GridLayout(1, 2, 20, 20));
+        contentPanel.setBackground(Color.WHITE);
 
-        return new ChartPanel(pieChart);
+        // Left Column
+        JPanel leftColumn = new JPanel(new BorderLayout(10, 10));
+        leftColumn.setBackground(Color.WHITE);
+        leftColumn.add(new JLabel("Your Average Plate"), BorderLayout.NORTH);
+        leftColumn.add(createChartPlaceholder("[Pie Chart]"), BorderLayout.CENTER);
+        String[] columnNames = {"Food Group", "Your %", "CFG Recommended"};
+        Object[][] data = {
+                {"Vegetables & Fruits", "35%", "50%"},
+                {"Whole Grains", "30%", "25%"},
+                {"Protein Foods", "25%", "25%"},
+                {"Dairy", "10%", "Include daily"}
+        };
+        JTable table = new JTable(data, columnNames);
+        leftColumn.add(new JScrollPane(table), BorderLayout.SOUTH);
+        contentPanel.add(leftColumn);
+
+        // Right Column
+        JPanel rightColumn = new JPanel(new BorderLayout(10, 10));
+        rightColumn.setBackground(Color.WHITE);
+        rightColumn.add(new JLabel("CFG Recommended Plate"), BorderLayout.NORTH);
+        rightColumn.add(createChartPlaceholder("[Pie Chart]"), BorderLayout.CENTER);
+        JPanel recommendationsPanel = new JPanel();
+        recommendationsPanel.setLayout(new BoxLayout(recommendationsPanel, BoxLayout.Y_AXIS));
+        recommendationsPanel.setBackground(Color.WHITE);
+        recommendationsPanel.add(new JLabel("<html><b>⚠️ Increase vegetables and fruits</b><br><small>Add 15% more to reach CFG guidelines</small></html>"));
+        recommendationsPanel.add(Box.createVerticalStrut(10));
+        recommendationsPanel.add(new JLabel("<html><b>✓ Protein intake is good</b><br><small>You're meeting the recommended amount</small></html>"));
+        recommendationsPanel.add(Box.createVerticalStrut(10));
+        recommendationsPanel.add(new JLabel("<html><b>⚠️ Reduce grain portions slightly</b><br><small>Currently 5% above recommendations</small></html>"));
+        rightColumn.add(recommendationsPanel, BorderLayout.SOUTH);
+        contentPanel.add(rightColumn);
+
+        panel.add(contentPanel, BorderLayout.CENTER);
+
+        // Bottom button
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        buttonPanel.setBackground(Color.WHITE);
+        JButton dashboardButton = new JButton("Dashboard");
+        styleButton(dashboardButton);
+        buttonPanel.add(dashboardButton);
+        panel.add(buttonPanel, BorderLayout.SOUTH);
+
+        return panel;
     }
 
-    private ChartPanel createBarChartPanel() {
-        // Dataset for calories per meal
-        DefaultCategoryDataset dataset = new DefaultCategoryDataset();
-        dataset.addValue(350, "Calories", "Breakfast");
-        dataset.addValue(550, "Calories", "Lunch");
-        dataset.addValue(600, "Calories", "Dinner");
-        dataset.addValue(200, "Calories", "Snacks");
-
-        // Create Bar Chart
-        JFreeChart barChart = ChartFactory.createBarChart(
-                "Calories by Meal",
-                "Meal Type", "Calories",
-                dataset,
-                PlotOrientation.VERTICAL,
-                false, true, false);
-
-        // Styling
-        styleChart(barChart);
-
-        return new ChartPanel(barChart);
+    private void styleButton(JButton button) {
+        button.setFont(FONT_NORMAL);
+        button.setBackground(COLOR_SECONDARY);
+        button.setForeground(COLOR_TEXT_LIGHT);
+        button.setFocusPainted(false);
+        button.setBorder(BorderFactory.createEmptyBorder(5, 15, 5, 15));
     }
 
-    private ChartPanel createLineChartPanel() {
-        // Dataset for weekly calorie trend
-        DefaultCategoryDataset dataset = new DefaultCategoryDataset();
-        dataset.addValue(1800, "Calories", "Mon");
-        dataset.addValue(2000, "Calories", "Tue");
-        dataset.addValue(1900, "Calories", "Wed");
-        dataset.addValue(2100, "Calories", "Thu");
-        dataset.addValue(1700, "Calories", "Fri");
-        dataset.addValue(2300, "Calories", "Sat");
-        dataset.addValue(2200, "Calories", "Sun");
-
-        // Create Line Chart
-        JFreeChart lineChart = ChartFactory.createLineChart(
-                "Weekly Calorie Trend",
-                "Day", "Calories",
-                dataset,
-                PlotOrientation.VERTICAL,
-                false, true, false);
-
-        // Styling
-        styleChart(lineChart);
-
-        return new ChartPanel(lineChart);
-    }
-
-    /**
-     * Helper method to apply common styling to charts
-     */
-    private void styleChart(JFreeChart chart) {
-        chart.setBackgroundPaint(bgColor);
-        chart.getTitle().setPaint(textColor);
-        
-        // A chart might not have a legend, so check for null
-        if (chart.getLegend() != null) {
-            chart.getLegend().setBackgroundPaint(bgColor);
-            chart.getLegend().setItemPaint(textColor);
-        }
-
-        org.jfree.chart.plot.CategoryPlot plot = chart.getCategoryPlot();
-        plot.setBackgroundPaint(bgColor);
-        plot.setRangeGridlinePaint(Color.DARK_GRAY);
-        plot.getDomainAxis().setLabelPaint(textColor);
-        plot.getDomainAxis().setTickLabelPaint(textColor);
-        plot.getRangeAxis().setLabelPaint(textColor);
-        plot.getRangeAxis().setTickLabelPaint(textColor);
+    private JPanel createPlaceholderPanel(String title) {
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBackground(Color.WHITE);
+        JLabel label = new JLabel(title + " - Content Coming Soon");
+        label.setFont(FONT_TITLE);
+        label.setForeground(COLOR_TEXT_DARK);
+        panel.add(label);
+        return panel;
     }
 }

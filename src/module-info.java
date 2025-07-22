@@ -4,7 +4,7 @@
 /**
  * 
  */
-module GROUP_PAPA_3311 {
+module CleanTracker {
 	requires java.desktop;
 	requires java.sql;
 	requires jfreechart;

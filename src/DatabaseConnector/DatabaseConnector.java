@@ -11,7 +11,7 @@ public class DatabaseConnector {
 			Class.forName("com.mysql.cj.jdbc.Driver");
 			String url = "jdbc:mysql://localhost:3306/nutrisci_db";
 			String username = "root";
-			String password = "Password";
+			String password = "shyamal";
 			connection = DriverManager.getConnection(url, username, password);
 			initializeDatabase(); // Calls the method below
 		} catch (Exception e) {
@@ -54,7 +54,7 @@ public class DatabaseConnector {
 		        if (connection == null || connection.isClosed()) {
 		            String url = "jdbc:mysql://localhost:3306/nutrisci_db";
 		            String username = "root";
-		            String password = "Password";
+		            String password = "shyamal";
 		            connection = DriverManager.getConnection(url, username, password);
 		        }
 		    } catch (SQLException e) {

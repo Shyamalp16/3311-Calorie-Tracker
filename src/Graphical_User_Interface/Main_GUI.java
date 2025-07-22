@@ -15,12 +15,15 @@ public class Main_GUI {
  private JFrame mainFrame;
  
  public Main_GUI() {
+     initializeMainFrame();
+     mainFrame.setVisible(false);
+     
      if (!authenticateUser()) {
          System.exit(0);
      }
      
      initializeServices();
-     initializeMainFrame();
+     mainFrame.setVisible(true);
  }
  
  private void initializeServices() {
@@ -34,7 +37,7 @@ public class Main_GUI {
  }
  
  private boolean authenticateUser() {
-     LoginDialog loginDialog = new LoginDialog(null);
+     LoginDialog loginDialog = new LoginDialog(mainFrame);
      loginDialog.setVisible(true);
      
      if (loginDialog.isSuccessful()) {

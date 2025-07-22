@@ -58,7 +58,7 @@ public class LoginDialog extends AuthDialog {
  }
  
  private void showRegistrationDialog() {
-     RegistrationDialog regDialog = new RegistrationDialog((JFrame)getParent());
+     RegistrationDialog regDialog = new RegistrationDialog((JFrame)getOwner());
      setVisible(false);
      regDialog.setVisible(true);
      

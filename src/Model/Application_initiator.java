@@ -7,6 +7,6 @@ public class Application_initiator {
 	public static void main(String[] args) {
 	        Main_GUI app = new Main_GUI();
 	        app.show();
-	    };
+	    }
 	}
 

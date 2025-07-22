@@ -21,6 +21,8 @@ public class ProfileCreation extends JDialog {
     
     // Form input fields
     private JTextField nameField;
+    private JTextField usernameField;
+    private JPasswordField passwordField;
     private JComboBox<String> genderCombo;
     private JTextField birthDateField;
     private JTextField heightField;
@@ -77,10 +79,16 @@ public class ProfileCreation extends JDialog {
         
         // Name field
         addFormRow(formPanel, gbc, 0, "Name:", nameField = new JTextField(20));
+
+        // Username field
+        addFormRow(formPanel, gbc, 1, "Username:", usernameField = new JTextField(20));
+
+        // Password field
+        addFormRow(formPanel, gbc, 2, "Password:", passwordField = new JPasswordField(20));
         
         // Gender dropdown
         genderCombo = new JComboBox<>(new String[]{"Male", "Female", "Other"});
-        addFormRow(formPanel, gbc, 1, "Gender:", genderCombo);
+        addFormRow(formPanel, gbc, 3, "Gender:", genderCombo);
         
         // Birth date field with format hint
         birthDateField = new JTextField(20);
@@ -91,7 +99,7 @@ public class ProfileCreation extends JDialog {
         formatLabel.setForeground(Color.GRAY);
         formatLabel.setFont(new Font("Arial", Font.ITALIC, 12));
         birthPanel.add(formatLabel);
-        addFormRow(formPanel, gbc, 2, "Birth Date:", birthPanel);
+        addFormRow(formPanel, gbc, 4, "Birth Date:", birthPanel);
         
         // Height field with unit
         JPanel heightPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
@@ -101,7 +109,7 @@ public class ProfileCreation extends JDialog {
         JLabel heightUnit = new JLabel(" cm");
         heightUnit.setForeground(Color.WHITE);
         heightPanel.add(heightUnit);
-        addFormRow(formPanel, gbc, 3, "Height:", heightPanel);
+        addFormRow(formPanel, gbc, 5, "Height:", heightPanel);
         
         // Weight field with unit
         JPanel weightPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
@@ -111,13 +119,13 @@ public class ProfileCreation extends JDialog {
         JLabel weightUnit = new JLabel(" kg");
         weightUnit.setForeground(Color.WHITE);
         weightPanel.add(weightUnit);
-        addFormRow(formPanel, gbc, 4, "Weight:", weightPanel);
+        addFormRow(formPanel, gbc, 6, "Weight:", weightPanel);
         
         // Activity level dropdown
         activityCombo = new JComboBox<>(new String[]{
             "Sedentary", "Lightly Active", "Moderately Active", "Very Active", "Extremely Active"
         });
-        addFormRow(formPanel, gbc, 5, "Activity Level:", activityCombo);
+        addFormRow(formPanel, gbc, 7, "Activity Level:", activityCombo);
         
         add(formPanel, BorderLayout.CENTER);
         
@@ -141,7 +149,7 @@ public class ProfileCreation extends JDialog {
         createButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-//                createUserProfile();
+                createUserProfile();
             }
         });
         
@@ -181,89 +189,109 @@ public class ProfileCreation extends JDialog {
         panel.add(inputComponent, gbc);
     }
     
-//    /**
-//     * Validates form input and creates new user profile
-//     */
-//    private void createUserProfile() {
-//        try {
-//            // Get values from form fields
-//            String name = nameField.getText().trim();
-//            String gender = (String) genderCombo.getSelectedItem();
-//            String birthDateStr = birthDateField.getText().trim();
-//            String heightStr = heightField.getText().trim();
-//            String weightStr = weightField.getText().trim();
-//            String activityLevel = (String) activityCombo.getSelectedItem();
-//            
-//            // Validate required fields
-//            if (name.isEmpty()) {
-//                showError("Name is required.");
-//                return;
-//            }
-//            
-//            if (birthDateStr.isEmpty()) {
-//                showError("Birth date is required.");
-//                return;
-//            }
-//            
-//            if (heightStr.isEmpty()) {
-//                showError("Height is required.");
-//                return;
-//            }
-//            
-//            if (weightStr.isEmpty()) {
-//                showError("Weight is required.");
-//                return;
-//            }
-//            
-//            // Parse and validate birth date
-//            Date birthDate;
-//            try {
-//                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-//                sdf.setLenient(false); // Strict date parsing
-//                java.util.Date parsedDate = sdf.parse(birthDateStr);
-//                birthDate = new Date(parsedDate.getTime()); // Convert to SQL Date
-//            } catch (ParseException e) {
-//                showError("Invalid date format. Please use YYYY-MM-DD (e.g., 1995-03-15).");
-//                return;
-//            }
-//            
-//            // Parse and validate height
-//            double height;
-//            try {
-//                height = Double.parseDouble(heightStr);
-//                if (height <= 0 || height > 300) { // Reasonable height range
-//                    showError("Please enter a valid height between 1 and 300 cm.");
-//                    return;
-//                }
-//            } catch (NumberFormatException e) {
-//                showError("Please enter a valid number for height.");
-//                return;
-//            }
-//            
-//            // Parse and validate weight
-//            double weight;
-//            try {
-//                weight = Double.parseDouble(weightStr);
-//                if (weight <= 0 || weight > 500) { // Reasonable weight range
-//                    showError("Please enter a valid weight between 1 and 500 kg.");
-//                    return;
-//                }
-//            } catch (NumberFormatException e) {
-//                showError("Please enter a valid number for weight.");
-//                return;
-//            }
-//            
-//            // Create User object with validated data
-//            User newUser = new User(name, gender, birthDate, height, weight, activityLevel);
-//            
-//            // Save to database
-//            User savedUser = userDAO.createUser(newUser);
-//            
-//            if (savedUser != null) {
-//                // Success! Show confirmation and close dialog
-//                JOptionPane.showMessageDialog(this,
-//                    "Profile created successfully!\nWel");
-//            }
-//        }
-//    }
+    /**
+     * Validates form input and creates new user profile
+     */
+    private void createUserProfile() {
+        try {
+            // Get values from form fields
+            String name = nameField.getText().trim();
+            String username = usernameField.getText().trim();
+            String password = new String(passwordField.getPassword());
+            String gender = (String) genderCombo.getSelectedItem();
+            String birthDateStr = birthDateField.getText().trim();
+            String heightStr = heightField.getText().trim();
+            String weightStr = weightField.getText().trim();
+            String activityLevel = (String) activityCombo.getSelectedItem();
+            
+            // Validate required fields
+            if (name.isEmpty()) {
+                showError("Name is required.");
+                return;
+            }
+
+            if (username.isEmpty()) {
+                showError("Username is required.");
+                return;
+            }
+
+            if (password.isEmpty()) {
+                showError("Password is required.");
+                return;
+            }
+            
+            if (birthDateStr.isEmpty()) {
+                showError("Birth date is required.");
+                return;
+            }
+            
+            if (heightStr.isEmpty()) {
+                showError("Height is required.");
+                return;
+            }
+            
+            if (weightStr.isEmpty()) {
+                showError("Weight is required.");
+                return;
+            }
+            
+            // Parse and validate birth date
+            Date birthDate;
+            try {
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+                sdf.setLenient(false); // Strict date parsing
+                java.util.Date parsedDate = sdf.parse(birthDateStr);
+                birthDate = new Date(parsedDate.getTime()); // Convert to SQL Date
+            } catch (ParseException e) {
+                showError("Invalid date format. Please use YYYY-MM-DD (e.g., 1995-03-15).");
+                return;
+            }
+            
+            // Parse and validate height
+            double height;
+            try {
+                height = Double.parseDouble(heightStr);
+                if (height <= 0 || height > 300) { // Reasonable height range
+                    showError("Please enter a valid height between 1 and 300 cm.");
+                    return;
+                }
+            } catch (NumberFormatException e) {
+                showError("Please enter a valid number for height.");
+                return;
+            }
+            
+            // Parse and validate weight
+            double weight;
+            try {
+                weight = Double.parseDouble(weightStr);
+                if (weight <= 0 || weight > 500) { // Reasonable weight range
+                    showError("Please enter a valid weight between 1 and 500 kg.");
+                    return;
+                }
+            } catch (NumberFormatException e) {
+                showError("Please enter a valid number for weight.");
+                return;
+            }
+            
+            // Create User object with validated data
+            User newUser = new User(name, username, password, gender, birthDate, height, weight, activityLevel);
+            
+            // Save to database
+            User savedUser = userDAO.createUser(newUser);
+            
+            if (savedUser != null) {
+                // Success! Show confirmation and close dialog
+                JOptionPane.showMessageDialog(this,
+                    "Profile created successfully!");
+                dispose();
+                new Dashboard(savedUser);
+            }
+        } catch (Exception e) {
+            showError("An unexpected error occurred: " + e.getMessage());
+        }
+    }
+
+    private void showError(String message) {
+        JOptionPane.showMessageDialog(this, message, "Input Error", JOptionPane.ERROR_MESSAGE);
+    }
 }

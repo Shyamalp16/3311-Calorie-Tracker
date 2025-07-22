@@ -17,18 +17,20 @@ public class UserDAO {
      * @return the user with updated userId from database, or null if failed
      */
     public User createUser(User user) {
-        String sql = "INSERT INTO users (name, gender, birth_date, height, weight, activity_level, created_at) " +
-                    "VALUES (?, ?, ?, ?, ?, ?, NOW())";
+        String sql = "INSERT INTO users (name, username, password, gender, birth_date, height, weight, activity_level, created_at) " +
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())";
         
         try (Connection conn = DatabaseConnector.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             
             stmt.setString(1, user.getName());
-            stmt.setString(2, user.getGender());
-            stmt.setDate(3, user.getBirthDate());
-            stmt.setDouble(4, user.getHeight());
-            stmt.setDouble(5, user.getWeight());
-            stmt.setString(6, user.getActivityLevel());
+            stmt.setString(2, user.getUsername());
+            stmt.setString(3, user.getPassword());
+            stmt.setString(4, user.getGender());
+            stmt.setDate(5, user.getBirthDate());
+            stmt.setDouble(6, user.getHeight());
+            stmt.setDouble(7, user.getWeight());
+            stmt.setString(8, user.getActivityLevel());
             
             int rowsAffected = stmt.executeUpdate();
             

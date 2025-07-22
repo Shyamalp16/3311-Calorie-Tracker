@@ -6,6 +6,8 @@ import java.time.LocalDate;
 public class User {
     private int userId;
     private String name;
+    private String username;
+    private String password;
     private String gender;
     private Date birthDate;
     private double height;
@@ -17,9 +19,11 @@ public class User {
     public User() {}
     
     // Constructor with parameters
-    public User(String name, String gender, Date birthDate, 
+    public User(String name, String username, String password, String gender, Date birthDate, 
                 double height, double weight, String activityLevel) {
         this.name = name;
+        this.username = username;
+        this.password = password;
         this.gender = gender;
         this.birthDate = birthDate;
         this.height = height;
@@ -32,6 +36,12 @@ public class User {
     
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
+
+    public String getUsername() { return username; }
+    public void setUsername(String username) { this.username = username; }
+
+    public String getPassword() { return password; }
+    public void setPassword(String password) { this.password = password; }
     
     public String getGender() { return gender; }
     public void setGender(String gender) { this.gender = gender; }

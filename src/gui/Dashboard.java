@@ -36,5 +36,6 @@ public class Dashboard extends JFrame {
 
 
         add(panel);
+        setVisible(true);
     }
 }

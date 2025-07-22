@@ -1,7 +1,6 @@
-
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>CleanerTracker</name>
+	<name>GROUP_PAPA_3311</name>
 	<comment></comment>
 	<projects>
 	</projects>
@@ -16,4 +15,3 @@
 		<nature>org.eclipse.jdt.core.javanature</nature>
 	</natures>
 </projectDescription>
-temp-work-branch

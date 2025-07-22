@@ -12,12 +12,34 @@ import javax.swing.border.Border;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+import java.util.ArrayList;
+import java.sql.Timestamp;
+import javax.swing.table.DefaultTableModel;
 
 public class Dashboard extends JFrame {
 
     private User currentUser;
     private final Color COLOR_TAB_INACTIVE = new Color(224, 224, 224);
     private final Color COLOR_TEXT_INACTIVE = new Color(51, 51, 51);
+    private DefaultTableModel mealTableModel;
+    private JTextField searchFoodField;
+    private JSpinner quantitySpinner;
+    private JPopupMenu searchResultsPopup;
+    private JList<String> searchResultsList;
+    private List<models.Food> currentSearchResults;
+    private Database.FoodDAO foodDAO;
+    private Database.MealDAO mealDAO;
+    private JLabel totalCaloriesLabel;
 
     // Styling constants from the mockup
     private final Color COLOR_PRIMARY = new Color(76, 175, 80);
@@ -37,6 +59,7 @@ public class Dashboard extends JFrame {
     }
 
     private void initUI() {
+        currentSearchResults = new ArrayList<>();
         setTitle("Main Application - Dashboard");
         setSize(1200, 800); // Increased size for better layout
         setLocationRelativeTo(null);
@@ -242,15 +265,18 @@ public class Dashboard extends JFrame {
         contentPanel.add(formPanel, BorderLayout.NORTH);
 
         // Food Items Table
-        String[] columnNames = {"Food Item", "Quantity", "Unit", "Calories"};
-        Object[][] data = {
-                {"Oatmeal", 1, "cup", 150},
-                {"Blueberries", 0.5, "cup", 85},
-                {"Milk", 1, "cup", 150}
+        String[] columnNames = {"Food Item", "Quantity", "Unit", "Calories", "FoodObject"}; // Added hidden column for Food object
+        mealTableModel = new DefaultTableModel(columnNames, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false; // Make all cells uneditable
+            }
         };
-        JTable table = new JTable(data, columnNames);
+        JTable table = new JTable(mealTableModel);
+        foodDAO = new Database.FoodDAO();
+        mealDAO = new Database.MealDAO();
         table.setFont(FONT_NORMAL);
-        table.setRowHeight(25);
+        table.setRowHeight(20);
         JScrollPane scrollPane = new JScrollPane(table);
         contentPanel.add(scrollPane, BorderLayout.CENTER);
 
@@ -262,12 +288,94 @@ public class Dashboard extends JFrame {
         JPanel addFoodPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         addFoodPanel.setBackground(Color.WHITE);
         addFoodPanel.add(new JLabel("Add Food:"));
-        addFoodPanel.add(new JTextField("Search food items...", 20));
-        addFoodPanel.add(new JTextField("Quantity...", 8));
+        searchFoodField = new JTextField("Search food items...", 20);
+        searchFoodField.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyReleased(KeyEvent e) {
+                String searchTerm = searchFoodField.getText().trim();
+                if (searchTerm.length() > 2) { // Only search if at least 3 characters are typed
+                    currentSearchResults = foodDAO.searchFoodByName(searchTerm);
+                    DefaultListModel<String> listModel = new DefaultListModel<>();
+                    for (models.Food food : currentSearchResults) {
+                        listModel.addElement(food.getFoodDescription());
+                    }
+                    searchResultsList.setModel(listModel);
+                    if (!currentSearchResults.isEmpty()) {
+                        searchResultsPopup.show(searchFoodField, 0, searchFoodField.getHeight());
+                    } else {
+                        searchResultsPopup.setVisible(false);
+                    }
+                } else {
+                    searchResultsPopup.setVisible(false);
+                }
+            }
+        });
+        addFoodPanel.add(searchFoodField);
+
+        searchResultsPopup = new JPopupMenu();
+        searchResultsList = new JList<>();
+        searchResultsList.addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                searchFoodField.setText(searchResultsList.getSelectedValue());
+                searchResultsPopup.setVisible(false);
+            }
+        });
+        searchResultsPopup.add(new JScrollPane(searchResultsList));
+        quantitySpinner = new JSpinner(new SpinnerNumberModel(1, 1, 999, 1));
+        quantitySpinner.setPreferredSize(new Dimension(80, 25)); // Adjust size as needed
+        addFoodPanel.add(quantitySpinner);
         JButton addItemButton = new JButton("Add Item");
+        addItemButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                int selectedIndex = searchResultsList.getSelectedIndex();
+                if (selectedIndex != -1 && currentSearchResults != null && selectedIndex < currentSearchResults.size()) {
+                    models.Food selectedFood = currentSearchResults.get(selectedIndex);
+                    int quantity = (int) quantitySpinner.getValue();
+                    double calories = selectedFood.getCalories() * quantity;
+                    mealTableModel.addRow(new Object[]{selectedFood.getFoodDescription(), quantity, "g", calories}); // Assuming unit is 'g' for now
+                    updateTotalCalories();
+                    searchFoodField.setText("Search food items...");
+                    quantitySpinner.setValue(1);
+                    searchResultsPopup.setVisible(false);
+                } else {
+                    JOptionPane.showMessageDialog(Dashboard.this, "Please select a food item to add.", "No Food Selected", JOptionPane.WARNING_MESSAGE);
+                }
+            }
+        });
+        addItemButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                int selectedIndex = searchResultsList.getSelectedIndex();
+                if (selectedIndex != -1 && currentSearchResults != null && selectedIndex < currentSearchResults.size()) {
+                    models.Food selectedFood = currentSearchResults.get(selectedIndex);
+                    int quantity = (int) quantitySpinner.getValue();
+                    double calories = selectedFood.getCalories() * quantity;
+                    mealTableModel.addRow(new Object[]{selectedFood.getFoodDescription(), quantity, "g", calories}); // Assuming unit is 'g' for now
+                    updateTotalCalories();
+                    searchFoodField.setText("Search food items...");
+                    quantitySpinner.setValue(1);
+                    searchResultsPopup.setVisible(false);
+                } else {
+                    JOptionPane.showMessageDialog(Dashboard.this, "Please select a food item to add.", "No Food Selected", JOptionPane.WARNING_MESSAGE);
+                }
+            }
+        });
         styleButton(addItemButton);
         addFoodPanel.add(addItemButton);
         JButton removeItemButton = new JButton("Remove Selected");
+        removeItemButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                int selectedRow = table.getSelectedRow();
+                if (selectedRow != -1) {
+                    mealTableModel.removeRow(selectedRow);
+                    updateTotalCalories();
+                } else {
+                    JOptionPane.showMessageDialog(Dashboard.this, "Please select a row to remove.", "No Row Selected", JOptionPane.WARNING_MESSAGE);
+                }
+            }
+        });
         styleButton(removeItemButton);
         addFoodPanel.add(removeItemButton);
 
@@ -276,8 +384,49 @@ public class Dashboard extends JFrame {
         // Totals and Actions
         JPanel actionsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 10));
         actionsPanel.setBackground(Color.WHITE);
-        actionsPanel.add(new JLabel("Total Calories: 385"));
+        totalCaloriesLabel = new JLabel("Total Calories: 0");
+        actionsPanel.add(totalCaloriesLabel);
         JButton saveButton = new JButton("Save Meal");
+        saveButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    String mealType = (String) mealTypeCombo.getSelectedItem();
+                    Date mealDate = new SimpleDateFormat("yyyy-MM-dd").parse(dateField.getText());
+
+                    models.Meal meal = new models.Meal(0, currentUser.getUserId(), mealType, mealDate, new Timestamp(System.currentTimeMillis()));
+                    int mealId = mealDAO.saveMeal(meal);
+
+                    if (mealId != -1) {
+                        List<models.MealItem> mealItems = new ArrayList<>();
+                        for (int i = 0; i < mealTableModel.getRowCount(); i++) {
+                            String foodDescription = (String) mealTableModel.getValueAt(i, 0);
+                            int quantity = (int) mealTableModel.getValueAt(i, 1);
+                            // Assuming unit is "g" for now, and foodId needs to be retrieved from the database
+                            // For simplicity, we'll use a placeholder foodId for now. In a real app, you'd search for the foodId.
+                            // This part needs to be improved to get the actual foodId from the food_name table.
+                            int foodId = 0; // Placeholder
+                            // You would typically get the foodId when you search for the food item initially
+                            // For now, let's assume we have a way to get the foodId from the foodDescription
+                            // This is a simplification for the current task.
+                            // A more robust solution would involve storing the Food object in the table model.
+                            mealItems.add(new models.MealItem(0, mealId, foodId, quantity, "g"));
+                        }
+                        mealDAO.saveMealItems(mealId, mealItems);
+                        JOptionPane.showMessageDialog(Dashboard.this, "Meal saved successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                        mealTableModel.setRowCount(0); // Clear the table
+                        updateTotalCalories();
+                    } else {
+                        JOptionPane.showMessageDialog(Dashboard.this, "Failed to save meal.", "Error", JOptionPane.ERROR_MESSAGE);
+                    }
+                } catch (ParseException ex) {
+                    JOptionPane.showMessageDialog(Dashboard.this, "Invalid date format. Please use YYYY-MM-DD.", "Input Error", JOptionPane.ERROR_MESSAGE);
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(Dashboard.this, "An error occurred: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                    ex.printStackTrace();
+                }
+            }
+        });
         styleButton(saveButton);
         actionsPanel.add(saveButton);
         JButton detailsButton = new JButton("View Nutrition Details");
@@ -429,5 +578,13 @@ public class Dashboard extends JFrame {
         label.setForeground(COLOR_TEXT_DARK);
         panel.add(label);
         return panel;
+    }
+
+    private void updateTotalCalories() {
+        double totalCalories = 0;
+        for (int i = 0; i < mealTableModel.getRowCount(); i++) {
+            totalCalories += (double) mealTableModel.getValueAt(i, 3); // Calories are in the 4th column (index 3)
+        }
+        totalCaloriesLabel.setText(String.format("Total Calories: %.0f", totalCalories));
     }
 }

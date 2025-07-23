@@ -1,365 +1,240 @@
  package logic;
 
-import models.Food;
-import models.User;
 import Database.FoodDAO;
-import Database.MealDAO;
-
+import models.*;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class FoodSwapEngine {
     
     private FoodDAO foodDAO;
-    private MealDAO mealDAO;
+    private final double DEFAULT_TOLERANCE = 0.1; // 10% tolerance for non-target nutrients
     
     public FoodSwapEngine() {
         this.foodDAO = new FoodDAO();
-        this.mealDAO = new MealDAO();
     }
     
-    /**
-     * Finds suitable food swaps based on user's nutritional goals
-     * @param user The current user
-     * @param primaryGoal The main nutritional goal (e.g., "Increase Fiber")
-     * @param secondaryGoal Optional secondary goal (can be "None")
-     * @param intensity The intensity level ("Slightly more", "Moderately more", "Significantly more")
-     * @return Map of meal types to list of food swaps (original food, replacement food pairs)
-     */
-    public Map<String, List<Food>> findFoodSwaps(User user, String primaryGoal, String secondaryGoal, String intensity) {
-        Map<String, List<Food>> swapSuggestions = new HashMap<>();
+    public List<FoodSwapRecommendation> findFoodSwaps(List<MealItem> mealItems, 
+                                                     List<FoodSwapGoal> goals) {
+        List<FoodSwapRecommendation> recommendations = new ArrayList<>();
         
-        // Get user's recent meals to analyze
-        List<Food> recentFoods = getUserRecentFoods(user);
+        // Limit to max 2 swaps per meal as per requirements
+        int maxSwaps = Math.min(2, mealItems.size());
+        int swapsFound = 0;
         
-        if (recentFoods.isEmpty()) {
-            // If no recent meals, provide general recommendations
-            return getGeneralRecommendations(primaryGoal, secondaryGoal, intensity);
-        }
+        // Sort meal items by priority for swapping (higher calorie items first for better impact)
+        List<MealItem> sortedItems = mealItems.stream()
+            .sorted((a, b) -> Double.compare(b.getCalories(), a.getCalories()))
+            .collect(Collectors.toList());
         
-        // Analyze each food item for potential swaps
-        for (Food food : recentFoods) {
-            List<Food> alternatives = findAlternatives(food, primaryGoal, secondaryGoal, intensity);
+        for (MealItem mealItem : sortedItems) {
+            if (swapsFound >= maxSwaps) break;
             
-            if (!alternatives.isEmpty()) {
-                String mealType = determineMealType(food);
-                swapSuggestions.computeIfAbsent(mealType, k -> new ArrayList<>());
-                
-                // Add original food and best alternative as a pair
-                swapSuggestions.get(mealType).add(food);
-                swapSuggestions.get(mealType).add(alternatives.get(0));
-            }
-        }
-        
-        return swapSuggestions;
-    }
-    
-    /**
-     * Finds alternative foods for a given food item based on nutritional goals
-     */
-    private List<Food> findAlternatives(Food originalFood, String primaryGoal, String secondaryGoal, String intensity) {
-        List<Food> alternatives = new ArrayList<>();
-        
-        // Search for foods in similar categories
-        List<Food> candidateFoods = searchSimilarFoods(originalFood);
-        
-        // Filter and rank candidates based on goals
-        for (Food candidate : candidateFoods) {
-            if (isGoodAlternative(originalFood, candidate, primaryGoal, secondaryGoal, intensity)) {
-                alternatives.add(candidate);
-            }
-        }
-        
-        // Sort by how well they meet the goals
-        alternatives.sort((a, b) -> compareAlternatives(originalFood, a, b, primaryGoal, secondaryGoal));
-        
-        return alternatives;
-    }
-    
-    /**
-     * Searches for foods similar to the original food
-     */
-    private List<Food> searchSimilarFoods(Food originalFood) {
-        List<Food> similarFoods = new ArrayList<>();
-        
-        // Extract key words from food description for searching
-        String[] keywords = extractKeywords(originalFood.getFoodDescription());
-        
-        for (String keyword : keywords) {
-            List<Food> results = foodDAO.searchFoodByName(keyword);
-            similarFoods.addAll(results);
-        }
-        
-        // Remove duplicates and original food
-        Set<Integer> seenIds = new HashSet<>();
-        similarFoods.removeIf(food -> 
-            !seenIds.add(food.getFoodID()) || food.getFoodID() == originalFood.getFoodID()
-        );
-        
-        return similarFoods;
-    }
-    
-    /**
-     * Extracts keywords from food description for similarity search
-     */
-    private String[] extractKeywords(String foodDescription) {
-        // Convert to lowercase and split by common separators
-        String cleaned = foodDescription.toLowerCase()
-            .replaceAll("[,;()\\[\\]]", " ")
-            .replaceAll("\\s+", " ")
-            .trim();
-        
-        String[] words = cleaned.split(" ");
-        List<String> keywords = new ArrayList<>();
-        
-        // Filter out common words and keep meaningful terms
-        Set<String> stopWords = Set.of("with", "and", "or", "the", "a", "an", "in", "on", "at", 
-                                     "raw", "cooked", "fresh", "frozen", "canned", "dried");
-        
-        for (String word : words) {
-            if (word.length() > 2 && !stopWords.contains(word)) {
-                keywords.add(word);
-            }
-        }
-        
-        return keywords.toArray(new String[0]);
-    }
-    
-    /**
-     * Determines if a candidate food is a good alternative based on goals
-     */
-    private boolean isGoodAlternative(Food original, Food candidate, String primaryGoal, String secondaryGoal, String intensity) {
-        double improvementThreshold = getImprovementThreshold(intensity);
-        
-        // Check primary goal
-        if (!meetsGoal(original, candidate, primaryGoal, improvementThreshold)) {
-            return false;
-        }
-        
-        // Check secondary goal if specified
-        if (!"None".equals(secondaryGoal)) {
-            if (!meetsGoal(original, candidate, secondaryGoal, improvementThreshold * 0.5)) {
-                return false;
-            }
-        }
-        
-        // Ensure the alternative isn't significantly worse in other nutrients
-        return !isSignificantlyWorse(original, candidate);
-    }
-    
-    /**
-     * Checks if a candidate meets a specific nutritional goal
-     */
-    private boolean meetsGoal(Food original, Food candidate, String goal, double threshold) {
-        switch (goal) {
-            case "Increase Fiber":
-                return candidate.getFiber() > original.getFiber() + threshold;
-            case "Reduce Calories":
-                return candidate.getCalories() < original.getCalories() - (threshold * 10);
-            case "Increase Protein":
-                return candidate.getProtein() > original.getProtein() + threshold;
-            case "Reduce Sodium":
-                // Note: Sodium data would need to be added to Food model
-                return true; // Placeholder
-            case "Increase Calcium":
-                // Note: Calcium data would need to be added to Food model
-                return true; // Placeholder
-            case "Reduce Sugar":
-                // Note: Sugar data would need to be added to Food model
-                return true; // Placeholder
-            case "Increase Iron":
-                // Note: Iron data would need to be added to Food model
-                return true; // Placeholder
-            default:
-                return false;
-        }
-    }
-    
-    /**
-     * Gets improvement threshold based on intensity level
-     */
-    private double getImprovementThreshold(String intensity) {
-        switch (intensity) {
-            case "Slightly more":
-                return 1.0; // 1g for nutrients, 10 cal for calories
-            case "Moderately more":
-                return 2.0; // 2g for nutrients, 20 cal for calories
-            case "Significantly more":
-                return 3.0; // 3g for nutrients, 30 cal for calories
-            default:
-                return 1.0;
-        }
-    }
-    
-    /**
-     * Checks if the alternative is significantly worse in other important nutrients
-     */
-    private boolean isSignificantlyWorse(Food original, Food candidate) {
-        // Don't allow alternatives that are much higher in calories (unless goal is to increase calories)
-        if (candidate.getCalories() > original.getCalories() * 1.5) {
-            return true;
-        }
-        
-        // Don't allow alternatives that are much lower in protein (unless goal is to reduce protein)
-        if (candidate.getProtein() < original.getProtein() * 0.7) {
-            return true;
-        }
-        
-        return false;
-    }
-    
-    /**
-     * Compares two alternatives to determine which better meets the goals
-     */
-    private int compareAlternatives(Food original, Food alt1, Food alt2, String primaryGoal, String secondaryGoal) {
-        double score1 = calculateGoalScore(original, alt1, primaryGoal, secondaryGoal);
-        double score2 = calculateGoalScore(original, alt2, primaryGoal, secondaryGoal);
-        
-        return Double.compare(score2, score1); // Higher score is better
-    }
-    
-    /**
-     * Calculates a score for how well an alternative meets the goals
-     */
-    private double calculateGoalScore(Food original, Food alternative, String primaryGoal, String secondaryGoal) {
-        double score = 0;
-        
-        // Primary goal (weighted more heavily)
-        score += getGoalImprovement(original, alternative, primaryGoal) * 2.0;
-        
-        // Secondary goal if specified
-        if (!"None".equals(secondaryGoal)) {
-            score += getGoalImprovement(original, alternative, secondaryGoal);
-        }
-        
-        return score;
-    }
-    
-    /**
-     * Gets the improvement value for a specific goal
-     */
-    private double getGoalImprovement(Food original, Food alternative, String goal) {
-        switch (goal) {
-            case "Increase Fiber":
-                return alternative.getFiber() - original.getFiber();
-            case "Reduce Calories":
-                return original.getCalories() - alternative.getCalories();
-            case "Increase Protein":
-                return alternative.getProtein() - original.getProtein();
-            default:
-                return 0;
-        }
-    }
-    
-    /**
-     * Gets user's recent foods from meal history
-     */
-    private List<Food> getUserRecentFoods(User user) {
-        // This would typically query the user's recent meals from the database
-        // For now, return some sample foods
-        List<Food> recentFoods = new ArrayList<>();
-        
-        // Add some common foods that users might eat
-        try {
-            List<Food> whiteBreads = foodDAO.searchFoodByName("white bread");
-            List<Food> regularMilk = foodDAO.searchFoodByName("milk");
-            List<Food> regularPasta = foodDAO.searchFoodByName("pasta");
+            Food originalFood = foodDAO.getFoodById(mealItem.getFoodId());
+            if (originalFood == null) continue;
             
-            if (!whiteBreads.isEmpty()) recentFoods.add(whiteBreads.get(0));
-            if (!regularMilk.isEmpty()) recentFoods.add(regularMilk.get(0));
-            if (!regularPasta.isEmpty()) recentFoods.add(regularPasta.get(0));
+            FoodSwapRecommendation bestSwap = findBestSwapForFood(originalFood, goals, 
+                                                                 mealItem.getQuantity(), 
+                                                                 mealItem.getUnit());
             
-        } catch (Exception e) {
-            System.err.println("Error fetching recent foods: " + e.getMessage());
-        }
-        
-        return recentFoods;
-    }
-    
-    /**
-     * Determines meal type based on food characteristics or time
-     */
-    private String determineMealType(Food food) {
-        String description = food.getFoodDescription().toLowerCase();
-        
-        // Simple heuristics to determine meal type
-        if (description.contains("cereal") || description.contains("oatmeal") || 
-            description.contains("toast") || description.contains("breakfast")) {
-            return "Breakfast";
-        } else if (description.contains("salad") || description.contains("soup") || 
-                   description.contains("sandwich")) {
-            return "Lunch";
-        } else if (description.contains("dinner") || description.contains("meat") || 
-                   description.contains("chicken") || description.contains("beef")) {
-            return "Dinner";
-        } else {
-            return "Snack";
-        }
-    }
-    
-    /**
-     * Provides general recommendations when no user meal history is available
-     */
-    private Map<String, List<Food>> getGeneralRecommendations(String primaryGoal, String secondaryGoal, String intensity) {
-        Map<String, List<Food>> recommendations = new HashMap<>();
-        
-        try {
-            switch (primaryGoal) {
-                case "Increase Fiber":
-                    addFiberRecommendations(recommendations);
-                    break;
-                case "Reduce Calories":
-                    addCalorieReductionRecommendations(recommendations);
-                    break;
-                case "Increase Protein":
-                    addProteinRecommendations(recommendations);
-                    break;
-                default:
-                    addGeneralHealthyRecommendations(recommendations);
-                    break;
+            if (bestSwap != null) {
+                recommendations.add(bestSwap);
+                swapsFound++;
             }
-        } catch (Exception e) {
-            System.err.println("Error generating recommendations: " + e.getMessage());
         }
         
         return recommendations;
     }
     
-    private void addFiberRecommendations(Map<String, List<Food>> recommendations) {
-        List<Food> whiteBreads = foodDAO.searchFoodByName("white bread");
-        List<Food> wholegrainBreads = foodDAO.searchFoodByName("whole grain bread");
+    private FoodSwapRecommendation findBestSwapForFood(Food originalFood, 
+                                                      List<FoodSwapGoal> goals,
+                                                      double quantity, 
+                                                      String unit) {
         
-        if (!whiteBreads.isEmpty() && !wholegrainBreads.isEmpty()) {
-            recommendations.computeIfAbsent("Breakfast", k -> new ArrayList<>());
-            recommendations.get("Breakfast").add(whiteBreads.get(0));
-            recommendations.get("Breakfast").add(wholegrainBreads.get(0));
+        // First try to find alternatives from the same food group
+        List<Food> candidates = foodDAO.findSimilarFoodsByGroup(originalFood.getFoodID(), 50);
+        
+        // Always expand search with nutrient-based candidates for better results
+        for (FoodSwapGoal goal : goals) {
+            List<Food> nutrientCandidates = findCandidatesByNutrientGoal(originalFood, goal);
+            for (Food candidate : nutrientCandidates) {
+                if (!candidates.contains(candidate)) { // Avoid duplicates
+                    candidates.add(candidate);
+                }
+            }
         }
+        
+        System.out.println("Found " + candidates.size() + " candidates for food: " + originalFood.getFoodDescription());
+        
+        Food bestCandidate = null;
+        double bestScore = -1;
+        String bestReason = "";
+        
+        for (Food candidate : candidates) {
+            SwapScore score = evaluateSwap(originalFood, candidate, goals);
+            System.out.println("Evaluating candidate: " + candidate.getFoodDescription() + 
+                             " Score: " + score.totalScore + " Meets goals: " + score.meetsGoals);
+            
+            if (score.totalScore > bestScore && score.meetsGoals) {
+                bestCandidate = candidate;
+                bestScore = score.totalScore;
+                bestReason = score.reason;
+            }
+        }
+        
+        System.out.println("Best candidate: " + (bestCandidate != null ? bestCandidate.getFoodDescription() : "None") + 
+                          " with score: " + bestScore);
+        
+        if (bestCandidate != null) {
+            return new FoodSwapRecommendation(originalFood, bestCandidate, 
+                                            quantity, unit, bestReason);
+        }
+        
+        return null;
     }
     
-    private void addCalorieReductionRecommendations(Map<String, List<Food>> recommendations) {
-        List<Food> regularMilk = foodDAO.searchFoodByName("milk, whole");
-        List<Food> lowFatMilk = foodDAO.searchFoodByName("milk, low fat");
+    private List<Food> findCandidatesByNutrientGoal(Food originalFood, FoodSwapGoal goal) {
+        List<Food> candidates = new ArrayList<>();
         
-        if (!regularMilk.isEmpty() && !lowFatMilk.isEmpty()) {
-            recommendations.computeIfAbsent("Snack", k -> new ArrayList<>());
-            recommendations.get("Snack").add(regularMilk.get(0));
-            recommendations.get("Snack").add(lowFatMilk.get(0));
+        double originalValue = getNutrientValue(originalFood, goal.getNutrientType());
+        double targetValue = calculateTargetValue(originalValue, goal);
+        
+        // Search for foods with the target nutrient in a reasonable range
+        double searchMin = Math.min(originalValue * 0.5, targetValue * 0.8);
+        double searchMax = Math.max(originalValue * 2.0, targetValue * 1.5);
+        
+        String nutrientType = goal.getNutrientType().name().toLowerCase();
+        if (nutrientType.contains("fiber")) {
+            candidates.addAll(foodDAO.findFoodsByNutrientRange("fiber", searchMin, searchMax, 30));
+        } else if (nutrientType.contains("calories")) {
+            candidates.addAll(foodDAO.findFoodsByNutrientRange("calories", searchMin, searchMax, 30));
+        } else if (nutrientType.contains("protein")) {
+            candidates.addAll(foodDAO.findFoodsByNutrientRange("protein", searchMin, searchMax, 30));
+        } else if (nutrientType.contains("fat")) {
+            candidates.addAll(foodDAO.findFoodsByNutrientRange("fats", searchMin, searchMax, 30));
+        } else if (nutrientType.contains("carb")) {
+            candidates.addAll(foodDAO.findFoodsByNutrientRange("carbs", searchMin, searchMax, 30));
         }
+        
+        return candidates;
     }
     
-    private void addProteinRecommendations(Map<String, List<Food>> recommendations) {
-        List<Food> regularYogurt = foodDAO.searchFoodByName("yogurt");
-        List<Food> greekYogurt = foodDAO.searchFoodByName("greek yogurt");
-        
-        if (!regularYogurt.isEmpty() && !greekYogurt.isEmpty()) {
-            recommendations.computeIfAbsent("Breakfast", k -> new ArrayList<>());
-            recommendations.get("Breakfast").add(regularYogurt.get(0));
-            recommendations.get("Breakfast").add(greekYogurt.get(0));
+    private double calculateTargetValue(double originalValue, FoodSwapGoal goal) {
+        if (goal.getSpecificValue() != null) {
+            return goal.isIncrease() ? originalValue + goal.getSpecificValue() 
+                                     : originalValue - goal.getSpecificValue();
         }
+        
+        if (goal.getSpecificPercentage() != null) {
+            double change = originalValue * (goal.getSpecificPercentage() / 100.0);
+            return goal.isIncrease() ? originalValue + change 
+                                     : originalValue - change;
+        }
+        
+        if (goal.getIntensityLevel() != null) {
+            double multiplier = goal.getIntensityLevel().getMultiplier();
+            return goal.isIncrease() ? originalValue * multiplier 
+                                     : originalValue / multiplier;
+        }
+        
+        return originalValue;
     }
     
-    private void addGeneralHealthyRecommendations(Map<String, List<Food>> recommendations) {
-        // Add some general healthy swaps
-        addFiberRecommendations(recommendations);
-        addCalorieReductionRecommendations(recommendations);
+    private SwapScore evaluateSwap(Food original, Food candidate, List<FoodSwapGoal> goals) {
+        SwapScore score = new SwapScore();
+        
+        // Check if goals are met
+        boolean allGoalsMet = true;
+        StringBuilder reasonBuilder = new StringBuilder();
+        
+        for (FoodSwapGoal goal : goals) {
+            double originalValue = getNutrientValue(original, goal.getNutrientType());
+            double candidateValue = getNutrientValue(candidate, goal.getNutrientType());
+            double targetValue = calculateTargetValue(originalValue, goal);
+            
+            boolean goalMet = false;
+            if (goal.isIncrease()) {
+                // More lenient criteria - any improvement counts
+                goalMet = candidateValue > originalValue;
+                if (goalMet) {
+                    double improvement = candidateValue - originalValue;
+                    if (originalValue > 0) {
+                        score.goalScore += improvement / originalValue * 100; // Percentage improvement
+                    } else {
+                        score.goalScore += improvement * 10; // Fixed bonus for zero baseline
+                    }
+                    reasonBuilder.append(String.format("Increases %s by %.1fg; ", 
+                        goal.getNutrientType().getDisplayName().toLowerCase(), improvement));
+                }
+            } else if (goal.isDecrease()) {
+                // Any reduction counts
+                goalMet = candidateValue < originalValue;
+                if (goalMet) {
+                    double reduction = originalValue - candidateValue;
+                    if (originalValue > 0) {
+                        score.goalScore += reduction / originalValue * 100; // Percentage reduction
+                    } else {
+                        score.goalScore += reduction * 10; // Fixed bonus
+                    }
+                    reasonBuilder.append(String.format("Reduces %s by %.1fg; ", 
+                        goal.getNutrientType().getDisplayName().toLowerCase(), reduction));
+                }
+            }
+            
+            if (!goalMet) {
+                allGoalsMet = false;
+            }
+        }
+        
+        score.meetsGoals = allGoalsMet;
+        
+        // Evaluate how well other nutrients are preserved (within 10% tolerance)
+        double preservationScore = 0;
+        double[] originalNutrients = {original.getCalories(), original.getProtein(), 
+                                     original.getCarbs(), original.getFats(), original.getFiber()};
+        double[] candidateNutrients = {candidate.getCalories(), candidate.getProtein(), 
+                                      candidate.getCarbs(), candidate.getFats(), candidate.getFiber()};
+        
+        for (int i = 0; i < originalNutrients.length; i++) {
+            if (originalNutrients[i] > 0) {
+                double diff = Math.abs(candidateNutrients[i] - originalNutrients[i]) / originalNutrients[i];
+                if (diff <= DEFAULT_TOLERANCE) {
+                    preservationScore += 20; // Max 100 points for preserving all nutrients
+                } else {
+                    preservationScore += Math.max(0, 20 - (diff * 100)); // Penalty for deviation
+                }
+            }
+        }
+        
+        score.preservationScore = preservationScore;
+        score.totalScore = score.goalScore + score.preservationScore;
+        score.reason = reasonBuilder.toString();
+        
+        return score;
+    }
+    
+    private double getNutrientValue(Food food, FoodSwapGoal.NutrientType nutrientType) {
+        return switch (nutrientType) {
+            case INCREASE_FIBER -> food.getFiber();
+            case REDUCE_CALORIES -> food.getCalories();
+            case INCREASE_PROTEIN -> food.getProtein();
+            case REDUCE_FAT -> food.getFats();
+            case REDUCE_CARBS, INCREASE_CARBS -> food.getCarbs();
+        };
+    }
+    
+    private static class SwapScore {
+        double goalScore = 0;
+        double preservationScore = 0;
+        double totalScore = 0;
+        boolean meetsGoals = false;
+        String reason = "";
+    }
+    
+    public List<FoodSwapRecommendation> generateMealComparison(List<MealItem> originalMeal, 
+                                                              List<FoodSwapRecommendation> swaps) {
+        // This method could be used to generate the before/after comparison
+        // shown in the mockup UI
+        return swaps;
     }
 }

@@ -1,13 +1,11 @@
 package gui;
 
 import models.User;
-import gui.FoodSwapPanel;
-// Chart imports commented out - can be added when JFreeChart dependency is available
-// import org.jfree.chart.ChartFactory;
-// import org.jfree.chart.ChartPanel;
-// import org.jfree.chart.JFreeChart;
-// import org.jfree.chart.plot.PiePlot;
-// import org.jfree.data.general.DefaultPieDataset;
+import org.jfree.chart.ChartFactory;
+import org.jfree.chart.ChartPanel;
+import org.jfree.chart.JFreeChart;
+import org.jfree.chart.plot.PiePlot;
+import org.jfree.data.general.DefaultPieDataset;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -27,6 +25,12 @@ import java.util.List;
 import java.util.ArrayList;
 import java.sql.Timestamp;
 import javax.swing.table.DefaultTableModel;
+import logic.FoodSwapEngine;
+import logic.SwapApplicationService;
+import models.FoodSwapGoal;
+import models.FoodSwapRecommendation;
+import gui.MealDetailsDialog;
+
 
 public class Dashboard extends JFrame {
 
@@ -42,6 +46,19 @@ public class Dashboard extends JFrame {
     private Database.FoodDAO foodDAO;
     private Database.MealDAO mealDAO;
     private JLabel totalCaloriesLabel;
+    private FoodSwapEngine swapEngine;
+    private SwapApplicationService swapApplicationService;
+    
+    // Food Swaps UI components
+    private JComboBox<String> goal1Combo;
+    private JComboBox<String> intensityCombo;
+    private JComboBox<String> goal2Combo;
+    private JPanel swapResultsPanel;
+    private List<FoodSwapRecommendation> currentSwaps;
+    
+    // Dashboard panels for refresh
+    private JPanel leftColumnPanel;
+    private ChartPanel nutritionChartPanel;
 
     // Styling constants from the mockup
     private final Color COLOR_PRIMARY = new Color(76, 175, 80);
@@ -64,6 +81,9 @@ public class Dashboard extends JFrame {
         currentSearchResults = new ArrayList<>();
         foodDAO = new Database.FoodDAO(); // Initialize here
         mealDAO = new Database.MealDAO(); // Initialize here
+        swapEngine = new FoodSwapEngine(); // Initialize swap engine
+        swapApplicationService = new SwapApplicationService(); // Initialize swap application service
+        currentSwaps = new ArrayList<>();
         setTitle("Main Application - Dashboard");
         setSize(1200, 800); // Increased size for better layout
         setLocationRelativeTo(null);
@@ -77,7 +97,7 @@ public class Dashboard extends JFrame {
         // Add tabs
         tabbedPane.addTab("Dashboard", createDashboardPanel());
         tabbedPane.addTab("Log Meal", createLogMealPanel());
-        tabbedPane.addTab("Food Swaps", createFoodSwapPanel());
+        tabbedPane.addTab("Food Swaps", createFoodSwapsPanel());
         tabbedPane.addTab("Nutrition Analysis", createNutritionAnalysisPanel());
         tabbedPane.addTab("Canada Food Guide", createCanadaFoodGuidePanel());
 
@@ -85,6 +105,9 @@ public class Dashboard extends JFrame {
         tabbedPane.addChangeListener(new ChangeListener() {
             public void stateChanged(ChangeEvent e) {
                 updateTabStyles(tabbedPane);
+                if (tabbedPane.getSelectedIndex() == 0) { // Assuming Dashboard is the first tab
+                    refreshDashboard();
+                }
             }
         });
 
@@ -127,7 +150,8 @@ public class Dashboard extends JFrame {
         JPanel contentPanel = new JPanel(new GridLayout(1, 2, 20, 20));
         contentPanel.setBackground(Color.WHITE);
 
-        contentPanel.add(createLeftColumn());
+        leftColumnPanel = createLeftColumn();
+        contentPanel.add(leftColumnPanel);
         contentPanel.add(createRightColumn());
 
         dashboardPanel.add(contentPanel, BorderLayout.CENTER);
@@ -141,14 +165,12 @@ public class Dashboard extends JFrame {
         leftPanel.setBackground(Color.WHITE);
 
         // Today's Summary
-        JPanel summaryPanel = new JPanel();
-        summaryPanel.setLayout(new BoxLayout(summaryPanel, BoxLayout.Y_AXIS));
+        JPanel summaryPanel = new JPanel(new GridLayout(0, 2, 10, 5));
         summaryPanel.setBackground(Color.WHITE);
         summaryPanel.setBorder(BorderFactory.createTitledBorder("Today's Summary"));
 
         // Fetch today's meals
-        Date today = new Date();
-        List<models.Meal> todaysMeals = mealDAO.getMealsForUserAndDate(currentUser.getUserId(), today);
+        List<models.Meal> todaysMeals = mealDAO.getMealsForUserAndDate(currentUser.getUserId(), new java.sql.Date(new Date().getTime()));
 
         double dailyTotalCalories = 0;
         double dailyTotalProtein = 0;
@@ -164,11 +186,16 @@ public class Dashboard extends JFrame {
             dailyTotalFiber += meal.getTotalFiber();
         }
 
-        summaryPanel.add(new JLabel(String.format("Total Calories: %.0f", dailyTotalCalories)));
-        summaryPanel.add(new JLabel(String.format("Protein: %.0fg", dailyTotalProtein)));
-        summaryPanel.add(new JLabel(String.format("Carbs: %.0fg", dailyTotalCarbs)));
-        summaryPanel.add(new JLabel(String.format("Fat: %.0fg", dailyTotalFats)));
-        summaryPanel.add(new JLabel(String.format("Fiber: %.0fg", dailyTotalFiber)));
+        summaryPanel.add(new JLabel("Total Calories:"));
+        summaryPanel.add(new JLabel(String.format("%.0f", dailyTotalCalories)));
+        summaryPanel.add(new JLabel("Protein:"));
+        summaryPanel.add(new JLabel(String.format("%.0fg", dailyTotalProtein)));
+        summaryPanel.add(new JLabel("Carbs:"));
+        summaryPanel.add(new JLabel(String.format("%.0fg", dailyTotalCarbs)));
+        summaryPanel.add(new JLabel("Fat:"));
+        summaryPanel.add(new JLabel(String.format("%.0fg", dailyTotalFats)));
+        summaryPanel.add(new JLabel("Fiber:"));
+        summaryPanel.add(new JLabel(String.format("%.0fg", dailyTotalFiber)));
         leftPanel.add(summaryPanel);
 
         leftPanel.add(Box.createRigidArea(new Dimension(0, 20)));
@@ -182,22 +209,21 @@ public class Dashboard extends JFrame {
         if (todaysMeals.isEmpty()) {
             recentMealsPanel.add(new JLabel("No meals logged today."));
         } else {
+            // Group meals by type
+            java.util.Map<String, java.util.List<models.Meal>> groupedMeals = new java.util.HashMap<>();
             for (models.Meal meal : todaysMeals) {
-                StringBuilder mealDescription = new StringBuilder();
-                mealDescription.append(meal.getMealType()).append(": ");
-                List<models.MealItem> mealItems = mealDAO.getMealItemsByMealId(meal.getMealId());
-                for (int i = 0; i < mealItems.size(); i++) {
-                    models.MealItem item = mealItems.get(i);
-                    // In a real app, you'd fetch food name from FoodDAO using item.getFoodId()
-                    // For now, we'll just use a generic description or the food ID
-                    mealDescription.append("Food ID ").append(item.getFoodId()).append(" (").append(item.getQuantity()).append(item.getUnit()).append(")");
-                    if (i < mealItems.size() - 1) {
-                        mealDescription.append(", ");
-                    }
+                groupedMeals.computeIfAbsent(meal.getMealType(), k -> new java.util.ArrayList<>()).add(meal);
+            }
+
+            java.util.List<String> mealOrder = java.util.Arrays.asList("Breakfast", "Lunch", "Dinner", "Snack");
+            for (String mealType : mealOrder) {
+                if (groupedMeals.containsKey(mealType)) {
+                    java.util.List<models.Meal> mealsOfType = groupedMeals.get(mealType);
+                    double totalCalories = mealsOfType.stream().mapToDouble(models.Meal::getTotalCalories).sum();
+                    String description = String.format("%s - %.0f cal", mealType, totalCalories);
+                    recentMealsPanel.add(createMealItem(description, mealsOfType));
+                    recentMealsPanel.add(Box.createRigidArea(new Dimension(0, 10)));
                 }
-                mealDescription.append(String.format(" - %.0f cal", meal.getTotalCalories()));
-                recentMealsPanel.add(createMealItem(mealDescription.toString()));
-                recentMealsPanel.add(Box.createRigidArea(new Dimension(0, 10)));
             }
         }
         leftPanel.add(recentMealsPanel);
@@ -205,7 +231,7 @@ public class Dashboard extends JFrame {
         return leftPanel;
     }
 
-    private JPanel createMealItem(String description) {
+    private JPanel createMealItem(String description, java.util.List<models.Meal> meals) {
         JPanel mealPanel = new JPanel(new BorderLayout(10, 0));
         mealPanel.setBackground(COLOR_PANEL_BACKGROUND);
         mealPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
@@ -215,6 +241,14 @@ public class Dashboard extends JFrame {
         mealPanel.add(descriptionLabel, BorderLayout.CENTER);
 
         JButton detailsButton = new JButton("View Nutrition Details");
+        detailsButton.addActionListener(e -> {
+            java.util.List<models.MealItem> allItems = new java.util.ArrayList<>();
+            for (models.Meal meal : meals) {
+                allItems.addAll(mealDAO.getMealItemsByMealId(meal.getMealId()));
+            }
+            MealDetailsDialog dialog = new MealDetailsDialog(this, meals.get(0), allItems);
+            dialog.setVisible(true);
+        });
         styleButton(detailsButton);
         mealPanel.add(detailsButton, BorderLayout.EAST);
 
@@ -228,7 +262,8 @@ public class Dashboard extends JFrame {
 
         // Daily Nutrition Chart
         rightPanel.add(new JLabel("Daily Nutrition Chart"));
-        rightPanel.add(createPieChartPlaceholder());
+        nutritionChartPanel = createPieChartPlaceholder();
+        rightPanel.add(nutritionChartPanel);
 
         rightPanel.add(Box.createRigidArea(new Dimension(0, 20)));
 
@@ -239,7 +274,6 @@ public class Dashboard extends JFrame {
         return rightPanel;
     }
 
-<<<<<<< HEAD
     private ChartPanel createPieChartPlaceholder() {
         // Fetch today's meals to get dynamic data for the chart
         Date today = new Date();
@@ -293,41 +327,6 @@ public class Dashboard extends JFrame {
 
         ChartPanel chartPanel = new ChartPanel(pieChart);
         chartPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
-=======
-    private JPanel createPieChartPlaceholder() {
-        JPanel chartPanel = new JPanel(new GridBagLayout());
-        chartPanel.setBackground(new Color(249, 249, 249));
-        Border line = BorderFactory.createLineBorder(Color.LIGHT_GRAY);
-        Border empty = BorderFactory.createEmptyBorder(10, 10, 10, 10);
-        chartPanel.setBorder(BorderFactory.createCompoundBorder(line, empty));
-        
-        JPanel contentPanel = new JPanel();
-        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
-        contentPanel.setBackground(new Color(249, 249, 249));
-        
-        JLabel titleLabel = new JLabel("Daily Nutrition Breakdown");
-        titleLabel.setFont(FONT_SUBTITLE);
-        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        contentPanel.add(titleLabel);
-        
-        contentPanel.add(Box.createRigidArea(new Dimension(0, 10)));
-        
-        JLabel proteinLabel = new JLabel("🔴 Protein: 20%");
-        proteinLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        contentPanel.add(proteinLabel);
-        
-        JLabel carbsLabel = new JLabel("🔵 Carbs: 55%");
-        carbsLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        contentPanel.add(carbsLabel);
-        
-        JLabel fatLabel = new JLabel("🟡 Fat: 25%");
-        fatLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        contentPanel.add(fatLabel);
-        
-        chartPanel.add(contentPanel);
-        chartPanel.setMinimumSize(new Dimension(200, 200));
-        chartPanel.setPreferredSize(new Dimension(200, 200));
->>>>>>> 4ec67c7fe7efc8f21b742482bb0574be7ee22831
         return chartPanel;
     }
 
@@ -669,10 +668,6 @@ public class Dashboard extends JFrame {
         button.setBorder(BorderFactory.createEmptyBorder(5, 15, 5, 15));
     }
 
-    private JPanel createFoodSwapPanel() {
-        return new FoodSwapPanel(currentUser);
-    }
-
     private JPanel createPlaceholderPanel(String title) {
         JPanel panel = new JPanel(new GridBagLayout());
         panel.setBackground(Color.WHITE);
@@ -681,6 +676,474 @@ public class Dashboard extends JFrame {
         label.setForeground(COLOR_TEXT_DARK);
         panel.add(label);
         return panel;
+    }
+
+    private JPanel createFoodSwapsPanel() {
+        JPanel panel = new JPanel(new BorderLayout(20, 20));
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        // Title
+        JLabel titleLabel = new JLabel("Food Swap Goals");
+        titleLabel.setFont(FONT_TITLE);
+        titleLabel.setBackground(COLOR_PRIMARY);
+        titleLabel.setOpaque(true);
+        titleLabel.setForeground(Color.WHITE);
+        titleLabel.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
+        panel.add(titleLabel, BorderLayout.NORTH);
+
+        // Main content panel
+        JPanel contentPanel = new JPanel(new BorderLayout(0, 20));
+        contentPanel.setBackground(Color.WHITE);
+
+        // Goals selection panel
+        JPanel goalsPanel = createGoalsSelectionPanel();
+        contentPanel.add(goalsPanel, BorderLayout.NORTH);
+
+        // Results panel (initially empty)
+        swapResultsPanel = new JPanel(new BorderLayout());
+        swapResultsPanel.setBackground(Color.WHITE);
+        contentPanel.add(swapResultsPanel, BorderLayout.CENTER);
+
+        panel.add(contentPanel, BorderLayout.CENTER);
+        return panel;
+    }
+
+    private JPanel createGoalsSelectionPanel() {
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.anchor = GridBagConstraints.WEST;
+
+        // Title
+        JLabel titleLabel = new JLabel("Select Your Goals (Max 2)");
+        titleLabel.setFont(FONT_SUBTITLE);
+        gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 4;
+        panel.add(titleLabel, gbc);
+
+        // Goal 1
+        gbc.gridwidth = 1; gbc.gridy = 1;
+        gbc.gridx = 0;
+        panel.add(new JLabel("Goal 1:"), gbc);
+        
+        goal1Combo = new JComboBox<>(new String[]{
+            "Increase Fiber", "Reduce Calories", "Increase Protein", 
+            "Reduce Fat", "Reduce Carbs", "Increase Carbs"
+        });
+        goal1Combo.setFont(FONT_NORMAL);
+        gbc.gridx = 1;
+        panel.add(goal1Combo, gbc);
+
+        // Intensity
+        gbc.gridx = 2;
+        panel.add(new JLabel("Intensity:"), gbc);
+        
+        intensityCombo = new JComboBox<>(new String[]{
+            "Slightly more", "Moderately more", "Significantly more"
+        });
+        intensityCombo.setFont(FONT_NORMAL);
+        gbc.gridx = 3;
+        panel.add(intensityCombo, gbc);
+
+        // Goal 2 (Optional)
+        gbc.gridy = 2;
+        gbc.gridx = 0;
+        panel.add(new JLabel("Goal 2 (Optional):"), gbc);
+        
+        goal2Combo = new JComboBox<>(new String[]{
+            "None", "Increase Fiber", "Reduce Calories", "Increase Protein", 
+            "Reduce Fat", "Reduce Carbs", "Increase Carbs"
+        });
+        goal2Combo.setFont(FONT_NORMAL);
+        gbc.gridx = 1;
+        panel.add(goal2Combo, gbc);
+
+        // Find Swaps button
+        JButton findSwapsButton = new JButton("Find Swaps");
+        styleButton(findSwapsButton);
+        findSwapsButton.addActionListener(this::findSwapsAction);
+        gbc.gridx = 0; gbc.gridy = 3; gbc.gridwidth = 2;
+        gbc.fill = GridBagConstraints.NONE;
+        panel.add(findSwapsButton, gbc);
+
+        return panel;
+    }
+
+    private void findSwapsAction(ActionEvent e) {
+        // Get current meal items from today's meals
+        List<models.MealItem> todaysMealItems = getTodaysMealItems();
+        
+        if (todaysMealItems.isEmpty()) {
+            JOptionPane.showMessageDialog(this, 
+                "No meals found for today. Please log some meals first.", 
+                "No Meals", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        // Create goals from UI selections
+        List<FoodSwapGoal> goals = createGoalsFromUI();
+        
+        if (goals.isEmpty()) {
+            JOptionPane.showMessageDialog(this, 
+                "Please select at least one goal.", 
+                "No Goals Selected", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // Debug the swap engine if needed
+        if (System.getProperty("debug.swaps") != null) {
+            logic.FoodSwapEngineDebugger.debugSwapEngine(todaysMealItems, goals);
+        }
+        
+        // Find swaps
+        currentSwaps = swapEngine.findFoodSwaps(todaysMealItems, goals);
+        
+        // Display results
+        displaySwapResults();
+    }
+
+    private List<models.MealItem> getTodaysMealItems() {
+        List<models.MealItem> allItems = new ArrayList<>();
+        // Get today's meals for the current user
+        List<models.Meal> todaysMeals = mealDAO.getMealsForUserAndDate(currentUser.getUserId(), new Date());
+        
+        for (models.Meal meal : todaysMeals) {
+            List<models.MealItem> mealItems = mealDAO.getMealItemsByMealId(meal.getMealId());
+            allItems.addAll(mealItems);
+        }
+        
+        return allItems;
+    }
+
+    private List<FoodSwapGoal> createGoalsFromUI() {
+        List<FoodSwapGoal> goals = new ArrayList<>();
+        
+        // Goal 1
+        String goal1 = (String) goal1Combo.getSelectedItem();
+        String intensity = (String) intensityCombo.getSelectedItem();
+        
+        FoodSwapGoal.NutrientType nutrientType1 = parseNutrientType(goal1);
+        FoodSwapGoal.IntensityLevel intensityLevel = parseIntensityLevel(intensity);
+        
+        if (nutrientType1 != null && intensityLevel != null) {
+            goals.add(new FoodSwapGoal(nutrientType1, intensityLevel));
+        }
+        
+        // Goal 2 (if not "None")
+        String goal2 = (String) goal2Combo.getSelectedItem();
+        if (!"None".equals(goal2)) {
+            FoodSwapGoal.NutrientType nutrientType2 = parseNutrientType(goal2);
+            if (nutrientType2 != null && intensityLevel != null) {
+                goals.add(new FoodSwapGoal(nutrientType2, intensityLevel));
+            }
+        }
+        
+        return goals;
+    }
+
+    private FoodSwapGoal.NutrientType parseNutrientType(String display) {
+        return switch (display) {
+            case "Increase Fiber" -> FoodSwapGoal.NutrientType.INCREASE_FIBER;
+            case "Reduce Calories" -> FoodSwapGoal.NutrientType.REDUCE_CALORIES;
+            case "Increase Protein" -> FoodSwapGoal.NutrientType.INCREASE_PROTEIN;
+            case "Reduce Fat" -> FoodSwapGoal.NutrientType.REDUCE_FAT;
+            case "Reduce Carbs" -> FoodSwapGoal.NutrientType.REDUCE_CARBS;
+            case "Increase Carbs" -> FoodSwapGoal.NutrientType.INCREASE_CARBS;
+            default -> null;
+        };
+    }
+
+    private FoodSwapGoal.IntensityLevel parseIntensityLevel(String display) {
+        return switch (display) {
+            case "Slightly more" -> FoodSwapGoal.IntensityLevel.SLIGHTLY_MORE;
+            case "Moderately more" -> FoodSwapGoal.IntensityLevel.MODERATELY_MORE;
+            case "Significantly more" -> FoodSwapGoal.IntensityLevel.SIGNIFICANTLY_MORE;
+            default -> null;
+        };
+    }
+
+    private void displaySwapResults() {
+        swapResultsPanel.removeAll();
+        
+        if (currentSwaps.isEmpty()) {
+            JLabel noSwapsLabel = new JLabel("No suitable swaps found. Try different goals or log more meals.");
+            noSwapsLabel.setFont(FONT_NORMAL);
+            noSwapsLabel.setHorizontalAlignment(SwingConstants.CENTER);
+            swapResultsPanel.add(noSwapsLabel, BorderLayout.CENTER);
+        } else {
+            // Create suggested swaps panel
+            JPanel suggestedPanel = createSuggestedSwapsPanel();
+            swapResultsPanel.add(suggestedPanel, BorderLayout.CENTER);
+        }
+        
+        swapResultsPanel.revalidate();
+        swapResultsPanel.repaint();
+    }
+
+    private JPanel createSuggestedSwapsPanel() {
+        JPanel panel = new JPanel(new BorderLayout(0, 15));
+        panel.setBackground(Color.WHITE);
+
+        // Title
+        JLabel titleLabel = new JLabel("Suggested Swaps");
+        titleLabel.setFont(FONT_SUBTITLE);
+        panel.add(titleLabel, BorderLayout.NORTH);
+
+        // Swaps list
+        JPanel swapsListPanel = new JPanel();
+        swapsListPanel.setLayout(new BoxLayout(swapsListPanel, BoxLayout.Y_AXIS));
+        swapsListPanel.setBackground(Color.WHITE);
+
+        for (FoodSwapRecommendation swap : currentSwaps) {
+            JPanel swapPanel = createSwapItemPanel(swap);
+            swapsListPanel.add(swapPanel);
+            swapsListPanel.add(Box.createVerticalStrut(10));
+        }
+
+        JScrollPane scrollPane = new JScrollPane(swapsListPanel);
+        scrollPane.setPreferredSize(new Dimension(600, 200));
+        scrollPane.setBorder(BorderFactory.createLoweredBevelBorder());
+        panel.add(scrollPane, BorderLayout.CENTER);
+
+        // Buttons
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        buttonPanel.setBackground(Color.WHITE);
+        
+        JButton applyButton = new JButton("Apply Swaps");
+        styleButton(applyButton);
+        applyButton.addActionListener(this::applySwapsAction);
+        buttonPanel.add(applyButton);
+        
+        JButton viewComparisonButton = new JButton("View Comparison");
+        styleButton(viewComparisonButton);
+        viewComparisonButton.addActionListener(this::viewComparisonAction);
+        buttonPanel.add(viewComparisonButton);
+        
+        JButton viewHistoryButton = new JButton("View Swap History");
+        styleButton(viewHistoryButton);
+        viewHistoryButton.addActionListener(this::viewSwapHistoryAction);
+        buttonPanel.add(viewHistoryButton);
+
+        panel.add(buttonPanel, BorderLayout.SOUTH);
+
+        return panel;
+    }
+
+    private JPanel createSwapItemPanel(FoodSwapRecommendation swap) {
+        JPanel panel = new JPanel(new BorderLayout(10, 5));
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(Color.LIGHT_GRAY),
+            BorderFactory.createEmptyBorder(10, 15, 10, 15)
+        ));
+
+        // Swap description
+        String swapText = String.format("Replace in %s: %s → %s", 
+            getSwapContext(swap),
+            swap.getOriginalFood().getFoodDescription(),
+            swap.getRecommendedFood().getFoodDescription());
+        
+        JLabel swapLabel = new JLabel(swapText);
+        swapLabel.setFont(FONT_NORMAL);
+        panel.add(swapLabel, BorderLayout.NORTH);
+
+        // Nutritional impact
+        String impactText = String.format("%s cal, %s protein, %s fiber", 
+            swap.getCalorieChangeDisplay(),
+            swap.getProteinChangeDisplay(),
+            swap.getFiberChangeDisplay());
+        
+        JLabel impactLabel = new JLabel(impactText);
+        impactLabel.setFont(new Font("Arial", Font.ITALIC, 12));
+        impactLabel.setForeground(Color.GRAY);
+        panel.add(impactLabel, BorderLayout.SOUTH);
+
+        return panel;
+    }
+
+    private String getSwapContext(FoodSwapRecommendation swap) {
+        // This could be enhanced to show meal type (breakfast, lunch, etc.)
+        // For now, just return a generic context
+        return "meal";
+    }
+
+    private void applySwapsAction(ActionEvent e) {
+        if (currentSwaps.isEmpty()) {
+            JOptionPane.showMessageDialog(this, 
+                "No swaps to apply.", 
+                "No Swaps", 
+                JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        
+        // Show options for applying swaps
+        String[] options = {"Current Meals Only", "Apply to Date Range", "Cancel"};
+        int choice = JOptionPane.showOptionDialog(this,
+            "How would you like to apply " + currentSwaps.size() + " food swaps?",
+            "Apply Swaps Options",
+            JOptionPane.YES_NO_CANCEL_OPTION,
+            JOptionPane.QUESTION_MESSAGE,
+            null,
+            options,
+            options[0]);
+        
+        if (choice == 0) { // Current Meals Only
+            applySwapsToCurrentMeals();
+        } else if (choice == 1) { // Apply to Date Range
+            showDateRangeDialog();
+        }
+        // Choice 2 is Cancel, do nothing
+    }
+    
+    private void applySwapsToCurrentMeals() {
+        try {
+            boolean success = swapApplicationService.applySwapsToCurrentMeal(currentSwaps, currentUser.getUserId());
+            
+            if (success) {
+                JOptionPane.showMessageDialog(this, 
+                    "Swaps applied successfully to current meals!",
+                    "Success",
+                    JOptionPane.INFORMATION_MESSAGE);
+                
+                // Refresh the dashboard to show updated data
+                refreshDashboard();
+                
+                // Clear current swaps since they've been applied
+                currentSwaps.clear();
+                displaySwapResults();
+            } else {
+                JOptionPane.showMessageDialog(this, 
+                    "Some swaps could not be applied. Check console for details.",
+                    "Partial Success",
+                    JOptionPane.WARNING_MESSAGE);
+            }
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, 
+                "Error applying swaps: " + ex.getMessage(),
+                "Error",
+                JOptionPane.ERROR_MESSAGE);
+            ex.printStackTrace();
+        }
+    }
+    
+    private void showDateRangeDialog() {
+        JPanel panel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        
+        gbc.gridx = 0; gbc.gridy = 0;
+        panel.add(new JLabel("Start Date (YYYY-MM-DD):"), gbc);
+        gbc.gridx = 1;
+        JTextField startDateField = new JTextField(10);
+        startDateField.setText(new SimpleDateFormat("yyyy-MM-dd").format(new Date()));
+        panel.add(startDateField, gbc);
+        
+        gbc.gridx = 0; gbc.gridy = 1;
+        panel.add(new JLabel("End Date (YYYY-MM-DD):"), gbc);
+        gbc.gridx = 1;
+        JTextField endDateField = new JTextField(10);
+        endDateField.setText(new SimpleDateFormat("yyyy-MM-dd").format(new Date()));
+        panel.add(endDateField, gbc);
+        
+        int result = JOptionPane.showConfirmDialog(this, panel, 
+            "Select Date Range for Retroactive Swaps", JOptionPane.OK_CANCEL_OPTION);
+        
+        if (result == JOptionPane.OK_OPTION) {
+            try {
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+                Date startDate = sdf.parse(startDateField.getText());
+                Date endDate = sdf.parse(endDateField.getText());
+                
+                applySwapsToDateRange(startDate, endDate);
+            } catch (ParseException ex) {
+                JOptionPane.showMessageDialog(this, 
+                    "Invalid date format. Please use YYYY-MM-DD.",
+                    "Date Format Error",
+                    JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+    
+    private void applySwapsToDateRange(Date startDate, Date endDate) {
+        try {
+            boolean success = swapApplicationService.applySwapsToDateRange(
+                currentSwaps, currentUser.getUserId(), startDate, endDate);
+            
+            if (success) {
+                SwapApplicationService.SwapEffectSummary summary = 
+                    swapApplicationService.calculateSwapEffects(currentUser.getUserId(), startDate, endDate);
+                
+                String message = String.format(
+                    "Swaps applied successfully to meals from %s to %s!\n\n" +
+                    "Total effect over this period:\n" +
+                    "Calories: %+.0f\n" +
+                    "Protein: %+.1fg\n" +
+                    "Fiber: %+.1fg\n" +
+                    "Fat: %+.1fg\n" +
+                    "Carbs: %+.1fg",
+                    new SimpleDateFormat("yyyy-MM-dd").format(startDate),
+                    new SimpleDateFormat("yyyy-MM-dd").format(endDate),
+                    summary.calorieChange,
+                    summary.proteinChange,
+                    summary.fiberChange,
+                    summary.fatChange,
+                    summary.carbChange
+                );
+                
+                JOptionPane.showMessageDialog(this, message, "Success", JOptionPane.INFORMATION_MESSAGE);
+                
+                // Refresh the dashboard to show updated data
+                refreshDashboard();
+            } else {
+                JOptionPane.showMessageDialog(this, 
+                    "Some swaps could not be applied. Check console for details.",
+                    "Partial Success",
+                    JOptionPane.WARNING_MESSAGE);
+            }
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, 
+                "Error applying swaps: " + ex.getMessage(),
+                "Error",
+                JOptionPane.ERROR_MESSAGE);
+            ex.printStackTrace();
+        }
+    }
+    
+    public void refreshDashboard() {
+        // Refresh the left column (Today's Summary and Recent Meals)
+        JPanel newLeftColumn = createLeftColumn();
+        
+        // Replace the old left column
+        Container parent = leftColumnPanel.getParent();
+        parent.remove(leftColumnPanel);
+        leftColumnPanel = newLeftColumn;
+        parent.add(leftColumnPanel, 0); // Add at the same position
+        
+        // Refresh the nutrition chart
+        ChartPanel newChartPanel = createPieChartPlaceholder();
+        Container chartParent = nutritionChartPanel.getParent();
+        chartParent.remove(nutritionChartPanel);
+        nutritionChartPanel = newChartPanel;
+        chartParent.add(nutritionChartPanel, 1); // Add at the chart position
+        
+        // Refresh the UI
+        revalidate();
+        repaint();
+    }
+
+    private void viewComparisonAction(ActionEvent e) {
+        // Create and show the before/after comparison dialog
+        BeforeAfterComparisonDialog dialog = new BeforeAfterComparisonDialog(this, currentSwaps);
+        dialog.setVisible(true);
+    }
+    
+    private void viewSwapHistoryAction(ActionEvent e) {
+        // Create and show the swap history dialog
+        SwapHistoryDialog dialog = new SwapHistoryDialog(this, currentUser.getUserId());
+        dialog.setVisible(true);
     }
 
     private void updateTotalCalories() {

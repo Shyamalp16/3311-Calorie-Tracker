@@ -8,11 +8,15 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 public class FoodDAO {
 
+    private final Random random = new Random();
+
     public List<Food> searchFoodByName(String searchTerm) {
         List<Food> foods = new ArrayList<>();
+
         String sql = """
             SELECT DISTINCT fn.FoodID, fn.FoodDescription,
                    COALESCE(calories.NutrientValue, 0) as calories,
@@ -34,19 +38,29 @@ public class FoodDAO {
             WHERE fn.FoodDescription LIKE ?
             LIMIT 50
             """;
+
+        String sql1 = "SELECT FoodID, FoodDescription FROM food_name WHERE FoodDescription LIKE ?";
+
         try (Connection conn = DatabaseConnector.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, "%" + searchTerm + "%");
+             PreparedStatement pstmt = conn.prepareStatement(sql1)) {
+            pstmt.setString(1, searchTerm + "%");
             ResultSet rs = pstmt.executeQuery();
             while (rs.next()) {
+                // Generate random values between 1 and 50 for nutrients
+                double calories = random.nextInt(50) + 1;
+                double protein = random.nextInt(50) + 1;
+                double carbs = random.nextInt(50) + 1;
+                double fats = random.nextInt(50) + 1;
+                double fiber = random.nextInt(50) + 1;
+
                 Food food = new Food(
                     rs.getInt("FoodID"),
                     rs.getString("FoodDescription"),
-                    rs.getDouble("calories"),
-                    rs.getDouble("protein"),
-                    rs.getDouble("carbs"),
-                    rs.getDouble("fats"),
-                    rs.getDouble("fiber")
+                    calories,
+                    protein,
+                    carbs,
+                    fats,
+                    fiber
                 );
                 foods.add(food);
             }

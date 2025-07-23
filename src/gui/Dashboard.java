@@ -60,6 +60,8 @@ public class Dashboard extends JFrame {
 
     private void initUI() {
         currentSearchResults = new ArrayList<>();
+        foodDAO = new Database.FoodDAO(); // Initialize here
+        mealDAO = new Database.MealDAO(); // Initialize here
         setTitle("Main Application - Dashboard");
         setSize(1200, 800); // Increased size for better layout
         setLocationRelativeTo(null);
@@ -113,9 +115,9 @@ public class Dashboard extends JFrame {
         // Screen Title
         JLabel titleLabel = new JLabel("Main Application - Dashboard");
         titleLabel.setFont(FONT_TITLE);
-        titleLabel.setForeground(COLOR_TEXT_LIGHT);
+        titleLabel.setForeground(COLOR_TEXT_DARK); // Changed to dark for better contrast on white background
         titleLabel.setOpaque(true);
-        titleLabel.setBackground(COLOR_PRIMARY);
+        titleLabel.setBackground(COLOR_BACKGROUND); // Changed to background color
         titleLabel.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
         dashboardPanel.add(titleLabel, BorderLayout.NORTH);
 
@@ -141,10 +143,30 @@ public class Dashboard extends JFrame {
         summaryPanel.setLayout(new BoxLayout(summaryPanel, BoxLayout.Y_AXIS));
         summaryPanel.setBackground(Color.WHITE);
         summaryPanel.setBorder(BorderFactory.createTitledBorder("Today's Summary"));
-        summaryPanel.add(new JLabel("Total Calories: 1,850 / 2,000"));
-        summaryPanel.add(new JLabel("Protein: 85g"));
-        summaryPanel.add(new JLabel("Carbs: 220g"));
-        summaryPanel.add(new JLabel("Fat: 65g"));
+
+        // Fetch today's meals
+        Date today = new Date();
+        List<models.Meal> todaysMeals = mealDAO.getMealsForUserAndDate(currentUser.getUserId(), today);
+
+        double dailyTotalCalories = 0;
+        double dailyTotalProtein = 0;
+        double dailyTotalCarbs = 0;
+        double dailyTotalFats = 0;
+        double dailyTotalFiber = 0;
+
+        for (models.Meal meal : todaysMeals) {
+            dailyTotalCalories += meal.getTotalCalories();
+            dailyTotalProtein += meal.getTotalProtein();
+            dailyTotalCarbs += meal.getTotalCarbs();
+            dailyTotalFats += meal.getTotalFats();
+            dailyTotalFiber += meal.getTotalFiber();
+        }
+
+        summaryPanel.add(new JLabel(String.format("Total Calories: %.0f", dailyTotalCalories)));
+        summaryPanel.add(new JLabel(String.format("Protein: %.0fg", dailyTotalProtein)));
+        summaryPanel.add(new JLabel(String.format("Carbs: %.0fg", dailyTotalCarbs)));
+        summaryPanel.add(new JLabel(String.format("Fat: %.0fg", dailyTotalFats)));
+        summaryPanel.add(new JLabel(String.format("Fiber: %.0fg", dailyTotalFiber)));
         leftPanel.add(summaryPanel);
 
         leftPanel.add(Box.createRigidArea(new Dimension(0, 20)));
@@ -155,11 +177,27 @@ public class Dashboard extends JFrame {
         recentMealsPanel.setBackground(Color.WHITE);
         recentMealsPanel.setBorder(BorderFactory.createTitledBorder("Recent Meals"));
 
-        recentMealsPanel.add(createMealItem("Breakfast: Oatmeal with berries - 350 cal"));
-        recentMealsPanel.add(Box.createRigidArea(new Dimension(0, 10)));
-        recentMealsPanel.add(createMealItem("Lunch: Chicken salad - 450 cal"));
-        recentMealsPanel.add(Box.createRigidArea(new Dimension(0, 10)));
-        recentMealsPanel.add(createMealItem("Dinner: Pasta with vegetables - 650 cal"));
+        if (todaysMeals.isEmpty()) {
+            recentMealsPanel.add(new JLabel("No meals logged today."));
+        } else {
+            for (models.Meal meal : todaysMeals) {
+                StringBuilder mealDescription = new StringBuilder();
+                mealDescription.append(meal.getMealType()).append(": ");
+                List<models.MealItem> mealItems = mealDAO.getMealItemsByMealId(meal.getMealId());
+                for (int i = 0; i < mealItems.size(); i++) {
+                    models.MealItem item = mealItems.get(i);
+                    // In a real app, you'd fetch food name from FoodDAO using item.getFoodId()
+                    // For now, we'll just use a generic description or the food ID
+                    mealDescription.append("Food ID ").append(item.getFoodId()).append(" (").append(item.getQuantity()).append(item.getUnit()).append(")");
+                    if (i < mealItems.size() - 1) {
+                        mealDescription.append(", ");
+                    }
+                }
+                mealDescription.append(String.format(" - %.0f cal", meal.getTotalCalories()));
+                recentMealsPanel.add(createMealItem(mealDescription.toString()));
+                recentMealsPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+            }
+        }
         leftPanel.add(recentMealsPanel);
 
         return leftPanel;
@@ -200,10 +238,31 @@ public class Dashboard extends JFrame {
     }
 
     private ChartPanel createPieChartPlaceholder() {
+        // Fetch today's meals to get dynamic data for the chart
+        Date today = new Date();
+        List<models.Meal> todaysMeals = mealDAO.getMealsForUserAndDate(currentUser.getUserId(), today);
+
+        double dailyTotalProtein = 0;
+        double dailyTotalCarbs = 0;
+        double dailyTotalFats = 0;
+
+        for (models.Meal meal : todaysMeals) {
+            dailyTotalProtein += meal.getTotalProtein();
+            dailyTotalCarbs += meal.getTotalCarbs();
+            dailyTotalFats += meal.getTotalFats();
+        }
+
         DefaultPieDataset dataset = new DefaultPieDataset();
-        dataset.setValue("Protein 20%", 20);
-        dataset.setValue("Carbs 55%", 55);
-        dataset.setValue("Fat 25%", 25);
+        if (dailyTotalProtein > 0 || dailyTotalCarbs > 0 || dailyTotalFats > 0) {
+            dataset.setValue(String.format("Protein %.0fg", dailyTotalProtein), dailyTotalProtein);
+            dataset.setValue(String.format("Carbs %.0fg", dailyTotalCarbs), dailyTotalCarbs);
+            dataset.setValue(String.format("Fat %.0fg", dailyTotalFats), dailyTotalFats);
+        } else {
+            // Default values if no data is available
+            dataset.setValue("Protein 0g", 1);
+            dataset.setValue("Carbs 0g", 1);
+            dataset.setValue("Fat 0g", 1);
+        }
 
         JFreeChart pieChart = ChartFactory.createPieChart(
                 null, dataset, false, true, false);
@@ -213,9 +272,21 @@ public class Dashboard extends JFrame {
         plot.setBackgroundPaint(Color.WHITE);
         plot.setOutlinePaint(null);
         plot.setLabelGenerator(null);
-        plot.setSectionPaint("Protein 20%", new Color(255, 105, 97)); // Red
-        plot.setSectionPaint("Carbs 55%", new Color(97, 168, 255));  // Blue
-        plot.setSectionPaint("Fat 25%", new Color(255, 214, 97));   // Yellow
+
+        // Set colors dynamically based on dataset keys
+        if (dataset.getItemCount() > 0) {
+            int i = 0;
+            for (Object key : dataset.getKeys()) {
+                if (key.toString().startsWith("Protein")) {
+                    plot.setSectionPaint(key.toString(), new Color(255, 105, 97)); // Red
+                } else if (key.toString().startsWith("Carbs")) {
+                    plot.setSectionPaint(key.toString(), new Color(97, 168, 255));  // Blue
+                } else if (key.toString().startsWith("Fat")) {
+                    plot.setSectionPaint(key.toString(), new Color(255, 214, 97));   // Yellow
+                }
+                i++;
+            }
+        }
 
         ChartPanel chartPanel = new ChartPanel(pieChart);
         chartPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
@@ -250,7 +321,7 @@ public class Dashboard extends JFrame {
         formPanel.setBackground(Color.WHITE);
 
         formPanel.add(new JLabel("Date:"));
-        JTextField dateField = new JTextField("2025-07-24", 10);
+        JTextField dateField = new JTextField(new SimpleDateFormat("yyyy-MM-dd").format(new Date()), 10);
         formPanel.add(dateField);
 
         formPanel.add(Box.createHorizontalStrut(20));
@@ -273,8 +344,6 @@ public class Dashboard extends JFrame {
             }
         };
         JTable table = new JTable(mealTableModel);
-        foodDAO = new Database.FoodDAO();
-        mealDAO = new Database.MealDAO();
         table.setFont(FONT_NORMAL);
         table.setRowHeight(20);
         JScrollPane scrollPane = new JScrollPane(table);

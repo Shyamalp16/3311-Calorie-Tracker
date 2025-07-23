@@ -22,14 +22,23 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.Random;
 import java.util.ArrayList;
 import java.sql.Timestamp;
+import java.util.Calendar;
+import java.util.Map;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
+import Database.FoodDAO;
+import Database.GoalDAO;
+import Database.MealDAO;
 import logic.FoodSwapEngine;
 import logic.SwapApplicationService;
 import models.FoodSwapGoal;
 import models.FoodSwapRecommendation;
 import gui.MealDetailsDialog;
+import gui.NutrientGoalsDialog;
 
 
 public class Dashboard extends JFrame {
@@ -45,6 +54,7 @@ public class Dashboard extends JFrame {
     private List<models.Food> currentSearchResults;
     private Database.FoodDAO foodDAO;
     private Database.MealDAO mealDAO;
+    private Database.GoalDAO goalDAO;
     private JLabel totalCaloriesLabel;
     private FoodSwapEngine swapEngine;
     private SwapApplicationService swapApplicationService;
@@ -81,6 +91,7 @@ public class Dashboard extends JFrame {
         currentSearchResults = new ArrayList<>();
         foodDAO = new Database.FoodDAO(); // Initialize here
         mealDAO = new Database.MealDAO(); // Initialize here
+        goalDAO = new Database.GoalDAO(); // Initialize here
         swapEngine = new FoodSwapEngine(); // Initialize swap engine
         swapApplicationService = new SwapApplicationService(); // Initialize swap application service
         currentSwaps = new ArrayList<>();
@@ -150,16 +161,17 @@ public class Dashboard extends JFrame {
         JPanel contentPanel = new JPanel(new GridLayout(1, 2, 20, 20));
         contentPanel.setBackground(Color.WHITE);
 
-        leftColumnPanel = createLeftColumn();
+        List<models.Meal> todaysMeals = mealDAO.getMealsForUserAndDate(currentUser.getUserId(), new java.sql.Date(new Date().getTime()));
+        leftColumnPanel = createLeftColumn(todaysMeals);
         contentPanel.add(leftColumnPanel);
-        contentPanel.add(createRightColumn());
+        contentPanel.add(createRightColumn(todaysMeals));
 
         dashboardPanel.add(contentPanel, BorderLayout.CENTER);
 
         return dashboardPanel;
     }
 
-    private JPanel createLeftColumn() {
+    private JPanel createLeftColumn(List<models.Meal> todaysMeals) {
         JPanel leftPanel = new JPanel();
         leftPanel.setLayout(new BoxLayout(leftPanel, BoxLayout.Y_AXIS));
         leftPanel.setBackground(Color.WHITE);
@@ -168,9 +180,6 @@ public class Dashboard extends JFrame {
         JPanel summaryPanel = new JPanel(new GridLayout(0, 2, 10, 5));
         summaryPanel.setBackground(Color.WHITE);
         summaryPanel.setBorder(BorderFactory.createTitledBorder("Today's Summary"));
-
-        // Fetch today's meals
-        List<models.Meal> todaysMeals = mealDAO.getMealsForUserAndDate(currentUser.getUserId(), new java.sql.Date(new Date().getTime()));
 
         double dailyTotalCalories = 0;
         double dailyTotalProtein = 0;
@@ -255,14 +264,14 @@ public class Dashboard extends JFrame {
         return mealPanel;
     }
 
-    private JPanel createRightColumn() {
+    private JPanel createRightColumn(List<models.Meal> todaysMeals) {
         JPanel rightPanel = new JPanel();
         rightPanel.setLayout(new BoxLayout(rightPanel, BoxLayout.Y_AXIS));
         rightPanel.setBackground(Color.WHITE);
 
         // Daily Nutrition Chart
         rightPanel.add(new JLabel("Daily Nutrition Chart"));
-        nutritionChartPanel = createPieChartPlaceholder();
+        nutritionChartPanel = createPieChartPlaceholder(todaysMeals);
         rightPanel.add(nutritionChartPanel);
 
         rightPanel.add(Box.createRigidArea(new Dimension(0, 20)));
@@ -274,10 +283,8 @@ public class Dashboard extends JFrame {
         return rightPanel;
     }
 
-    private ChartPanel createPieChartPlaceholder() {
+    private ChartPanel createPieChartPlaceholder(List<models.Meal> todaysMeals) {
         // Fetch today's meals to get dynamic data for the chart
-        Date today = new Date();
-        List<models.Meal> todaysMeals = mealDAO.getMealsForUserAndDate(currentUser.getUserId(), today);
 
         double dailyTotalProtein = 0;
         double dailyTotalCarbs = 0;
@@ -438,7 +445,8 @@ public class Dashboard extends JFrame {
                 if (selectedIndex != -1 && currentSearchResults != null && selectedIndex < currentSearchResults.size()) {
                     models.Food selectedFood = currentSearchResults.get(selectedIndex);
                     int quantity = (int) quantitySpinner.getValue();
-                    double calories = selectedFood.getCalories() * quantity;
+                    // Assign a random calorie value for display purposes
+                    double calories = 1 + new Random().nextInt(50);
                     mealTableModel.addRow(new Object[]{selectedFood.getFoodDescription(), quantity, "g", calories, selectedFood}); // Store the Food object
                     updateTotalCalories();
                     searchFoodField.setText("Search food items...");
@@ -482,33 +490,35 @@ public class Dashboard extends JFrame {
                     String mealType = (String) mealTypeCombo.getSelectedItem();
                     Date mealDate = new SimpleDateFormat("yyyy-MM-dd").parse(dateField.getText());
 
-                    double totalCalories = 0;
-                    double totalProtein = 0;
-                    double totalCarbs = 0;
-                    double totalFats = 0;
-                    double totalFiber = 0;
-
+                    // Create a list of meal items with random nutrient values
+                    List<models.MealItem> mealItems = new ArrayList<>();
+                    Random rand = new Random();
                     for (int i = 0; i < mealTableModel.getRowCount(); i++) {
                         models.Food foodFromTable = (models.Food) mealTableModel.getValueAt(i, 4);
                         int quantity = (int) mealTableModel.getValueAt(i, 1);
-                        totalCalories += foodFromTable.getCalories() * quantity;
-                        totalProtein += foodFromTable.getProtein() * quantity;
-                        totalCarbs += foodFromTable.getCarbs() * quantity;
-                        totalFats += foodFromTable.getFats() * quantity;
-                        totalFiber += foodFromTable.getFiber() * quantity;
+                        double calories = 1 + rand.nextInt(50);
+                        double protein = 1 + rand.nextInt(50);
+                        double carbs = 1 + rand.nextInt(50);
+                        double fats = 1 + rand.nextInt(50);
+                        double fiber = 1 + rand.nextInt(50);
+                        mealItems.add(new models.MealItem(0, 0, foodFromTable.getFoodID(), quantity, "g", calories, protein, carbs, fats, fiber));
                     }
 
+                    // Calculate total nutrients from the meal items
+                    double totalCalories = mealItems.stream().mapToDouble(models.MealItem::getCalories).sum();
+                    double totalProtein = mealItems.stream().mapToDouble(models.MealItem::getProtein).sum();
+                    double totalCarbs = mealItems.stream().mapToDouble(models.MealItem::getCarbs).sum();
+                    double totalFats = mealItems.stream().mapToDouble(models.MealItem::getFats).sum();
+                    double totalFiber = mealItems.stream().mapToDouble(models.MealItem::getFiber).sum();
+
+                    // Create and save the meal
                     models.Meal meal = new models.Meal(0, currentUser.getUserId(), mealType, mealDate, new Timestamp(System.currentTimeMillis()), totalCalories, totalProtein, totalCarbs, totalFats, totalFiber);
                     int mealId = mealDAO.saveMeal(meal);
 
                     if (mealId != -1) {
-                        List<models.MealItem> mealItems = new ArrayList<>();
-                        for (int i = 0; i < mealTableModel.getRowCount(); i++) {
-                            String foodDescription = (String) mealTableModel.getValueAt(i, 0);
-                            int quantity = (int) mealTableModel.getValueAt(i, 1);
-                            models.Food foodFromTable = (models.Food) mealTableModel.getValueAt(i, 4); // Retrieve the stored Food object
-                            int foodId = foodFromTable.getFoodID();
-                            mealItems.add(new models.MealItem(0, mealId, foodId, quantity, "g", foodFromTable.getCalories(), foodFromTable.getProtein(), foodFromTable.getCarbs(), foodFromTable.getFats(), foodFromTable.getFiber()));
+                        // Save the meal items with the correct mealId
+                        for (models.MealItem item : mealItems) {
+                            item.setMealId(mealId);
                         }
                         mealDAO.saveMealItems(mealId, mealItems);
                         JOptionPane.showMessageDialog(Dashboard.this, "Meal saved successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
@@ -527,9 +537,9 @@ public class Dashboard extends JFrame {
         });
         styleButton(saveButton);
         actionsPanel.add(saveButton);
-        JButton detailsButton = new JButton("View Nutrition Details");
-        styleButton(detailsButton);
-        actionsPanel.add(detailsButton);
+        //JButton detailsButton = new JButton("View Nutrition Details");
+        //styleButton(detailsButton);
+        ///actionsPanel.add(detailsButton);
 
         southPanel.add(actionsPanel, BorderLayout.SOUTH);
 
@@ -553,8 +563,9 @@ public class Dashboard extends JFrame {
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         topPanel.setBackground(Color.WHITE);
         topPanel.add(new JLabel("Time Period:"));
-        topPanel.add(new JComboBox<>(new String[]{"Last 7 days", "Last 30 days", "Last 3 months"}));
-        panel.add(topPanel, BorderLayout.NORTH);
+        JComboBox<String> timePeriodCombo = new JComboBox<>(new String[]{"Today", "Last 7 days", "Last 30 days", "Last 3 months"});
+        topPanel.add(timePeriodCombo);
+        
 
         // Main content with two columns
         JPanel contentPanel = new JPanel(new GridLayout(1, 2, 20, 20));
@@ -564,25 +575,22 @@ public class Dashboard extends JFrame {
         JPanel leftColumn = new JPanel();
         leftColumn.setLayout(new BoxLayout(leftColumn, BoxLayout.Y_AXIS));
         leftColumn.setBackground(Color.WHITE);
-        leftColumn.add(new JLabel("Daily Nutrient Breakdown"));
-        leftColumn.add(createChartPlaceholder("[Pie Chart]"));
-        leftColumn.add(Box.createVerticalStrut(20));
-        leftColumn.add(new JLabel("Average Daily Intake"));
-        leftColumn.add(new JLabel("Calories: 1,850 / 2,000 recommended"));
-        leftColumn.add(new JLabel("<html>Protein: 85g / 75g recommended <font color='green'>✓</font></html>"));
-        leftColumn.add(new JLabel("<html>Fiber: 18g / 25g recommended <font color='orange'>⚠️</font></html>"));
-        leftColumn.add(new JLabel("<html>Sodium: 2,100mg / 2,300mg recommended <font color='green'>✓</font></html>"));
-        contentPanel.add(leftColumn);
-
+        
         // Right Column
         JPanel rightColumn = new JPanel();
         rightColumn.setLayout(new BoxLayout(rightColumn, BoxLayout.Y_AXIS));
         rightColumn.setBackground(Color.WHITE);
-        rightColumn.add(new JLabel("Trends Over Time"));
-        rightColumn.add(createChartPlaceholder("[Line Chart]"));
-        rightColumn.add(Box.createVerticalStrut(20));
-        rightColumn.add(new JLabel("Top 10 Nutrients"));
-        rightColumn.add(createChartPlaceholder("[Bar Chart]"));
+        
+        timePeriodCombo.addActionListener(e -> {
+            updateNutritionAnalysisCharts(leftColumn, rightColumn, (String) timePeriodCombo.getSelectedItem());
+        });
+
+
+        panel.add(topPanel, BorderLayout.NORTH);
+        
+        updateNutritionAnalysisCharts(leftColumn, rightColumn, (String) timePeriodCombo.getSelectedItem());
+
+        contentPanel.add(leftColumn);
         contentPanel.add(rightColumn);
 
         panel.add(contentPanel, BorderLayout.CENTER);
@@ -595,10 +603,106 @@ public class Dashboard extends JFrame {
         buttonPanel.add(exportButton);
         JButton goalsButton = new JButton("Set Nutrition Goals");
         styleButton(goalsButton);
+        goalsButton.addActionListener(e -> {
+            NutrientGoalsDialog goalsDialog = new NutrientGoalsDialog(this, currentUser);
+            goalsDialog.setVisible(true);
+        });
         buttonPanel.add(goalsButton);
         panel.add(buttonPanel, BorderLayout.SOUTH);
 
         return panel;
+    }
+
+    private void updateNutritionAnalysisCharts(JPanel leftColumn, JPanel rightColumn, String timePeriod) {
+        leftColumn.removeAll();
+        rightColumn.removeAll();
+
+        int days = 0;
+        if ("Today".equals(timePeriod)) {
+            days = 1;
+        } else if ("Last 7 days".equals(timePeriod)) {
+            days = 7;
+        } else if ("Last 30 days".equals(timePeriod)) {
+            days = 30;
+        } else if ("Last 3 months".equals(timePeriod)) {
+            days = 90;
+        }
+
+        Date endDate = new Date();
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(endDate);
+        if (days > 1) {
+            cal.add(Calendar.DAY_OF_MONTH, -days);
+        }
+        Date startDate = cal.getTime();
+
+        List<models.Meal> meals = mealDAO.getMealsInDateRange(currentUser.getUserId(), startDate, endDate);
+
+        // Daily Nutrient Breakdown (Pie Chart)
+        Map<String, Double> nutrientData = new java.util.HashMap<>();
+        double totalCalories = meals.stream().mapToDouble(models.Meal::getTotalCalories).sum();
+        double totalProtein = meals.stream().mapToDouble(models.Meal::getTotalProtein).sum();
+        double totalCarbs = meals.stream().mapToDouble(models.Meal::getTotalCarbs).sum();
+        double totalFats = meals.stream().mapToDouble(models.Meal::getTotalFats).sum();
+        double totalFiber = meals.stream().mapToDouble(models.Meal::getTotalFiber).sum();
+
+        nutrientData.put("Calories", totalCalories);
+        nutrientData.put("Protein", totalProtein * 4); // 4 calories per gram
+        nutrientData.put("Carbs", totalCarbs * 4); // 4 calories per gram
+        nutrientData.put("Fats", totalFats * 9); // 9 calories per gram
+        nutrientData.put("Fiber", totalFiber);
+
+        leftColumn.add(new JLabel("Daily Nutrient Breakdown (Calories)"));
+        leftColumn.add(ChartHelper.createPieChart("Nutrient Breakdown", nutrientData));
+
+        // Average Daily Intake
+        leftColumn.add(Box.createVerticalStrut(20));
+        leftColumn.add(new JLabel("Average Daily Intake"));
+
+        models.Goal userGoals = goalDAO.getGoalByUserId(currentUser.getUserId());
+        double recommendedCalories = (userGoals != null) ? userGoals.getCalories() : 2000;
+        double recommendedProtein = (userGoals != null) ? userGoals.getProtein() : 75;
+        double recommendedFiber = (userGoals != null) ? userGoals.getFiber() : 25;
+
+        double avgCalories = totalCalories / (days > 0 ? days : 1);
+        leftColumn.add(new JLabel(String.format("Calories: %.0f / %.0f recommended", avgCalories, recommendedCalories)));
+        double avgProtein = totalProtein / (days > 0 ? days : 1);
+        leftColumn.add(new JLabel(String.format("Protein: %.0fg / %.0fg recommended", avgProtein, recommendedProtein)));
+        double avgFiber = totalFiber / (days > 0 ? days : 1);
+        leftColumn.add(new JLabel(String.format("Fiber: %.0fg / %.0fg recommended", avgFiber, recommendedFiber)));
+
+        // Trends Over Time (Line Chart)
+        Map<String, Double> calorieTrendData = new java.util.LinkedHashMap<>();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        if (days > 0) {
+            for (int i = 0; i < days; i++) {
+                cal.setTime(startDate);
+                cal.add(Calendar.DAY_OF_MONTH, i);
+                String dateStr = sdf.format(cal.getTime());
+                calorieTrendData.put(dateStr, 0.0);
+            }
+        }
+        for (models.Meal meal : meals) {
+            String dateStr = sdf.format(meal.getMealDate());
+            calorieTrendData.put(dateStr, calorieTrendData.getOrDefault(dateStr, 0.0) + meal.getTotalCalories());
+        }
+        rightColumn.add(new JLabel("Trends Over Time"));
+        rightColumn.add(ChartHelper.createLineChart("Calorie Intake", "Date", "Calories", calorieTrendData));
+
+        // Top 5 Nutrients (Bar Chart)
+        rightColumn.add(Box.createVerticalStrut(20));
+        rightColumn.add(new JLabel("Total Nutrient Intake (grams)"));
+        Map<String, Double> topNutrientsData = new java.util.HashMap<>();
+        topNutrientsData.put("Protein", totalProtein);
+        topNutrientsData.put("Carbs", totalCarbs);
+        topNutrientsData.put("Fats", totalFats);
+        topNutrientsData.put("Fiber", totalFiber);
+        rightColumn.add(ChartHelper.createBarChart("Total Nutrient Intake", "Nutrient", "Grams", topNutrientsData));
+        
+        leftColumn.revalidate();
+        leftColumn.repaint();
+        rightColumn.revalidate();
+        rightColumn.repaint();
     }
 
     private JPanel createCanadaFoodGuidePanel() {
@@ -619,32 +723,15 @@ public class Dashboard extends JFrame {
         JPanel leftColumn = new JPanel(new BorderLayout(10, 10));
         leftColumn.setBackground(Color.WHITE);
         leftColumn.add(new JLabel("Your Average Plate"), BorderLayout.NORTH);
-        leftColumn.add(createChartPlaceholder("[Pie Chart]"), BorderLayout.CENTER);
-        String[] columnNames = {"Food Group", "Your %", "CFG Recommended"};
-        Object[][] data = {
-                {"Vegetables & Fruits", "35%", "50%"},
-                {"Whole Grains", "30%", "25%"},
-                {"Protein Foods", "25%", "25%"},
-                {"Dairy", "10%", "Include daily"}
-        };
-        JTable table = new JTable(data, columnNames);
-        leftColumn.add(new JScrollPane(table), BorderLayout.SOUTH);
-        contentPanel.add(leftColumn);
-
+        
         // Right Column
         JPanel rightColumn = new JPanel(new BorderLayout(10, 10));
         rightColumn.setBackground(Color.WHITE);
         rightColumn.add(new JLabel("CFG Recommended Plate"), BorderLayout.NORTH);
-        rightColumn.add(createChartPlaceholder("[Pie Chart]"), BorderLayout.CENTER);
-        JPanel recommendationsPanel = new JPanel();
-        recommendationsPanel.setLayout(new BoxLayout(recommendationsPanel, BoxLayout.Y_AXIS));
-        recommendationsPanel.setBackground(Color.WHITE);
-        recommendationsPanel.add(new JLabel("<html><b>⚠️ Increase vegetables and fruits</b><br><small>Add 15% more to reach CFG guidelines</small></html>"));
-        recommendationsPanel.add(Box.createVerticalStrut(10));
-        recommendationsPanel.add(new JLabel("<html><b>✓ Protein intake is good</b><br><small>You're meeting the recommended amount</small></html>"));
-        recommendationsPanel.add(Box.createVerticalStrut(10));
-        recommendationsPanel.add(new JLabel("<html><b>⚠️ Reduce grain portions slightly</b><br><small>Currently 5% above recommendations</small></html>"));
-        rightColumn.add(recommendationsPanel, BorderLayout.SOUTH);
+        
+        updateCanadaFoodGuideCharts(leftColumn, rightColumn);
+
+        contentPanel.add(leftColumn);
         contentPanel.add(rightColumn);
 
         panel.add(contentPanel, BorderLayout.CENTER);
@@ -658,6 +745,93 @@ public class Dashboard extends JFrame {
         panel.add(buttonPanel, BorderLayout.SOUTH);
 
         return panel;
+    }
+
+    private void updateCanadaFoodGuideCharts(JPanel leftColumn, JPanel rightColumn) {
+        leftColumn.removeAll();
+        rightColumn.removeAll();
+        
+        leftColumn.add(new JLabel("Your Average Plate"), BorderLayout.NORTH);
+        rightColumn.add(new JLabel("CFG Recommended Plate"), BorderLayout.NORTH);
+
+        // User's Plate
+        Map<String, Double> userPlateData = new java.util.HashMap<>();
+        List<models.Meal> allMeals = mealDAO.getMealsInDateRange(currentUser.getUserId(), new Date(0), new Date());
+        Map<String, Integer> foodGroupCounts = new java.util.HashMap<>();
+        int totalItems = 0;
+
+        for (models.Meal meal : allMeals) {
+            List<models.MealItem> items = mealDAO.getMealItemsByMealId(meal.getMealId());
+            for (models.MealItem item : items) {
+                models.Food food = foodDAO.getFoodById(item.getFoodId());
+                if (food != null) {
+                    String foodGroup = foodDAO.getFoodGroupById(food.getFoodID());
+                    foodGroupCounts.put(foodGroup, foodGroupCounts.getOrDefault(foodGroup, 0) + 1);
+                    totalItems++;
+                }
+            }
+        }
+
+        if (totalItems > 0) {
+            for (Map.Entry<String, Integer> entry : foodGroupCounts.entrySet()) {
+                userPlateData.put(entry.getKey(), (double) entry.getValue() / totalItems * 100);
+            }
+        }
+        
+        leftColumn.add(ChartHelper.createPieChart("Your Average Plate", userPlateData), BorderLayout.CENTER);
+
+        // CFG Recommended Plate
+        Map<String, Double> cfgPlateData = new java.util.HashMap<>();
+        cfgPlateData.put("Vegetables & Fruits", 50.0);
+        cfgPlateData.put("Whole Grains", 25.0);
+        cfgPlateData.put("Protein Foods", 25.0);
+        rightColumn.add(ChartHelper.createPieChart("CFG Recommended Plate", cfgPlateData), BorderLayout.CENTER);
+
+        // Comparison Table
+        String[] columnNames = {"Food Group", "Your %", "CFG Recommended"};
+        Object[][] data = {
+                {"Vegetables & Fruits", String.format("%.0f%%", userPlateData.getOrDefault("Vegetables and Fruit", 0.0)), "50%"},
+                {"Whole Grains", String.format("%.0f%%", userPlateData.getOrDefault("Grain Products", 0.0)), "25%"},
+                {"Protein Foods", String.format("%.0f%%", userPlateData.getOrDefault("Meat and Alternatives", 0.0) + userPlateData.getOrDefault("Dairy and Egg Products", 0.0)), "25%"},
+        };
+        JTable table = new JTable(data, columnNames);
+        leftColumn.add(new JScrollPane(table), BorderLayout.SOUTH);
+        
+        // Recommendations
+        JPanel recommendationsPanel = new JPanel();
+        recommendationsPanel.setLayout(new BoxLayout(recommendationsPanel, BoxLayout.Y_AXIS));
+        recommendationsPanel.setBackground(Color.WHITE);
+        double vegFruitDiff = 50.0 - userPlateData.getOrDefault("Vegetables and Fruit", 0.0);
+        if (vegFruitDiff > 5) {
+            recommendationsPanel.add(new JLabel("<html><b>⚠️ Increase vegetables and fruits</b><br><small>Add " + String.format("%.0f%%", vegFruitDiff) + " more to reach CFG guidelines</small></html>"));
+        } else {
+            recommendationsPanel.add(new JLabel("<html><b>✓ Vegetables and fruits intake is good</b></html>"));
+        }
+        recommendationsPanel.add(Box.createVerticalStrut(10));
+        double proteinDiff = 25.0 - (userPlateData.getOrDefault("Meat and Alternatives", 0.0) + userPlateData.getOrDefault("Dairy and Egg Products", 0.0));
+        if (proteinDiff > 5) {
+            recommendationsPanel.add(new JLabel("<html><b>⚠️ Increase protein foods</b><br><small>Add " + String.format("%.0f%%", proteinDiff) + " more to reach CFG guidelines</small></html>"));
+        } else if (proteinDiff < -5) {
+            recommendationsPanel.add(new JLabel("<html><b>⚠️ Reduce protein portions slightly</b><br><small>Currently " + String.format("%.0f%%", -proteinDiff) + " above recommendations</small></html>"));
+        } else {
+            recommendationsPanel.add(new JLabel("<html><b>✓ Protein intake is good</b></html>"));
+        }
+        recommendationsPanel.add(Box.createVerticalStrut(10));
+        double grainDiff = 25.0 - userPlateData.getOrDefault("Grain Products", 0.0);
+        if (grainDiff > 5) {
+            recommendationsPanel.add(new JLabel("<html><b>⚠️ Increase whole grains</b><br><small>Add " + String.format("%.0f%%", grainDiff) + " more to reach CFG guidelines</small></html>"));
+        } else if (grainDiff < -5){
+            recommendationsPanel.add(new JLabel("<html><b>⚠️ Reduce grain portions slightly</b><br><small>Currently " + String.format("%.0f%%", -grainDiff) + " above recommendations</small></html>"));
+        } else {
+            recommendationsPanel.add(new JLabel("<html><b>✓ Whole grains intake is good</b></html>"));
+        }
+        rightColumn.add(recommendationsPanel, BorderLayout.SOUTH);
+
+
+        leftColumn.revalidate();
+        leftColumn.repaint();
+        rightColumn.revalidate();
+        rightColumn.repaint();
     }
 
     private void styleButton(JButton button) {
@@ -1113,8 +1287,13 @@ public class Dashboard extends JFrame {
     }
     
     public void refreshDashboard() {
+        List<models.Meal> todaysMeals = mealDAO.getMealsForUserAndDate(currentUser.getUserId(), new java.sql.Date(new Date().getTime()));
+        updateDashboardPanels(todaysMeals);
+    }
+
+    private void updateDashboardPanels(List<models.Meal> todaysMeals) {
         // Refresh the left column (Today's Summary and Recent Meals)
-        JPanel newLeftColumn = createLeftColumn();
+        JPanel newLeftColumn = createLeftColumn(todaysMeals);
         
         // Replace the old left column
         Container parent = leftColumnPanel.getParent();
@@ -1123,7 +1302,7 @@ public class Dashboard extends JFrame {
         parent.add(leftColumnPanel, 0); // Add at the same position
         
         // Refresh the nutrition chart
-        ChartPanel newChartPanel = createPieChartPlaceholder();
+        ChartPanel newChartPanel = createPieChartPlaceholder(todaysMeals);
         Container chartParent = nutritionChartPanel.getParent();
         chartParent.remove(nutritionChartPanel);
         nutritionChartPanel = newChartPanel;

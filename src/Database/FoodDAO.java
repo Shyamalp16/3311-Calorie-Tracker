@@ -192,4 +192,23 @@ public class FoodDAO {
         }
         return foods;
     }
+
+    public String getFoodGroupById(int foodId) {
+        String sql = "SELECT fg.FoodGroupName " +
+                     "FROM food_name fn " +
+                     "JOIN food_group fg ON fn.FoodGroupID = fg.FoodGroupID " +
+                     "WHERE fn.FoodID = ?";
+        
+        try (Connection conn = DatabaseConnector.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, foodId);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getString("FoodGroupName");
+            }
+        } catch (SQLException e) {
+            System.err.println("Error getting food group by ID: " + e.getMessage());
+        }
+        return "Unknown";
+    }
 }

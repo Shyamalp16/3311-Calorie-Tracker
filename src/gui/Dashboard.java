@@ -1,11 +1,13 @@
 package gui;
 
 import models.User;
-import org.jfree.chart.ChartFactory;
-import org.jfree.chart.ChartPanel;
-import org.jfree.chart.JFreeChart;
-import org.jfree.chart.plot.PiePlot;
-import org.jfree.data.general.DefaultPieDataset;
+import gui.FoodSwapPanel;
+// Chart imports commented out - can be added when JFreeChart dependency is available
+// import org.jfree.chart.ChartFactory;
+// import org.jfree.chart.ChartPanel;
+// import org.jfree.chart.JFreeChart;
+// import org.jfree.chart.plot.PiePlot;
+// import org.jfree.data.general.DefaultPieDataset;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -75,7 +77,7 @@ public class Dashboard extends JFrame {
         // Add tabs
         tabbedPane.addTab("Dashboard", createDashboardPanel());
         tabbedPane.addTab("Log Meal", createLogMealPanel());
-        tabbedPane.addTab("Food Swaps", createPlaceholderPanel("Food Swaps"));
+        tabbedPane.addTab("Food Swaps", createFoodSwapPanel());
         tabbedPane.addTab("Nutrition Analysis", createNutritionAnalysisPanel());
         tabbedPane.addTab("Canada Food Guide", createCanadaFoodGuidePanel());
 
@@ -237,6 +239,7 @@ public class Dashboard extends JFrame {
         return rightPanel;
     }
 
+<<<<<<< HEAD
     private ChartPanel createPieChartPlaceholder() {
         // Fetch today's meals to get dynamic data for the chart
         Date today = new Date();
@@ -290,6 +293,41 @@ public class Dashboard extends JFrame {
 
         ChartPanel chartPanel = new ChartPanel(pieChart);
         chartPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
+=======
+    private JPanel createPieChartPlaceholder() {
+        JPanel chartPanel = new JPanel(new GridBagLayout());
+        chartPanel.setBackground(new Color(249, 249, 249));
+        Border line = BorderFactory.createLineBorder(Color.LIGHT_GRAY);
+        Border empty = BorderFactory.createEmptyBorder(10, 10, 10, 10);
+        chartPanel.setBorder(BorderFactory.createCompoundBorder(line, empty));
+        
+        JPanel contentPanel = new JPanel();
+        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
+        contentPanel.setBackground(new Color(249, 249, 249));
+        
+        JLabel titleLabel = new JLabel("Daily Nutrition Breakdown");
+        titleLabel.setFont(FONT_SUBTITLE);
+        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        contentPanel.add(titleLabel);
+        
+        contentPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+        
+        JLabel proteinLabel = new JLabel("🔴 Protein: 20%");
+        proteinLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        contentPanel.add(proteinLabel);
+        
+        JLabel carbsLabel = new JLabel("🔵 Carbs: 55%");
+        carbsLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        contentPanel.add(carbsLabel);
+        
+        JLabel fatLabel = new JLabel("🟡 Fat: 25%");
+        fatLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        contentPanel.add(fatLabel);
+        
+        chartPanel.add(contentPanel);
+        chartPanel.setMinimumSize(new Dimension(200, 200));
+        chartPanel.setPreferredSize(new Dimension(200, 200));
+>>>>>>> 4ec67c7fe7efc8f21b742482bb0574be7ee22831
         return chartPanel;
     }
 
@@ -629,6 +667,10 @@ public class Dashboard extends JFrame {
         button.setForeground(COLOR_TEXT_LIGHT);
         button.setFocusPainted(false);
         button.setBorder(BorderFactory.createEmptyBorder(5, 15, 5, 15));
+    }
+
+    private JPanel createFoodSwapPanel() {
+        return new FoodSwapPanel(currentUser);
     }
 
     private JPanel createPlaceholderPanel(String title) {

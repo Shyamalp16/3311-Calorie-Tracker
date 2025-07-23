@@ -333,25 +333,7 @@ public class Dashboard extends JFrame {
                     models.Food selectedFood = currentSearchResults.get(selectedIndex);
                     int quantity = (int) quantitySpinner.getValue();
                     double calories = selectedFood.getCalories() * quantity;
-                    mealTableModel.addRow(new Object[]{selectedFood.getFoodDescription(), quantity, "g", calories}); // Assuming unit is 'g' for now
-                    updateTotalCalories();
-                    searchFoodField.setText("Search food items...");
-                    quantitySpinner.setValue(1);
-                    searchResultsPopup.setVisible(false);
-                } else {
-                    JOptionPane.showMessageDialog(Dashboard.this, "Please select a food item to add.", "No Food Selected", JOptionPane.WARNING_MESSAGE);
-                }
-            }
-        });
-        addItemButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                int selectedIndex = searchResultsList.getSelectedIndex();
-                if (selectedIndex != -1 && currentSearchResults != null && selectedIndex < currentSearchResults.size()) {
-                    models.Food selectedFood = currentSearchResults.get(selectedIndex);
-                    int quantity = (int) quantitySpinner.getValue();
-                    double calories = selectedFood.getCalories() * quantity;
-                    mealTableModel.addRow(new Object[]{selectedFood.getFoodDescription(), quantity, "g", calories}); // Assuming unit is 'g' for now
+                    mealTableModel.addRow(new Object[]{selectedFood.getFoodDescription(), quantity, "g", calories, selectedFood}); // Store the Food object
                     updateTotalCalories();
                     searchFoodField.setText("Search food items...");
                     quantitySpinner.setValue(1);
@@ -394,7 +376,23 @@ public class Dashboard extends JFrame {
                     String mealType = (String) mealTypeCombo.getSelectedItem();
                     Date mealDate = new SimpleDateFormat("yyyy-MM-dd").parse(dateField.getText());
 
-                    models.Meal meal = new models.Meal(0, currentUser.getUserId(), mealType, mealDate, new Timestamp(System.currentTimeMillis()));
+                    double totalCalories = 0;
+                    double totalProtein = 0;
+                    double totalCarbs = 0;
+                    double totalFats = 0;
+                    double totalFiber = 0;
+
+                    for (int i = 0; i < mealTableModel.getRowCount(); i++) {
+                        models.Food foodFromTable = (models.Food) mealTableModel.getValueAt(i, 4);
+                        int quantity = (int) mealTableModel.getValueAt(i, 1);
+                        totalCalories += foodFromTable.getCalories() * quantity;
+                        totalProtein += foodFromTable.getProtein() * quantity;
+                        totalCarbs += foodFromTable.getCarbs() * quantity;
+                        totalFats += foodFromTable.getFats() * quantity;
+                        totalFiber += foodFromTable.getFiber() * quantity;
+                    }
+
+                    models.Meal meal = new models.Meal(0, currentUser.getUserId(), mealType, mealDate, new Timestamp(System.currentTimeMillis()), totalCalories, totalProtein, totalCarbs, totalFats, totalFiber);
                     int mealId = mealDAO.saveMeal(meal);
 
                     if (mealId != -1) {
@@ -402,15 +400,9 @@ public class Dashboard extends JFrame {
                         for (int i = 0; i < mealTableModel.getRowCount(); i++) {
                             String foodDescription = (String) mealTableModel.getValueAt(i, 0);
                             int quantity = (int) mealTableModel.getValueAt(i, 1);
-                            // Assuming unit is "g" for now, and foodId needs to be retrieved from the database
-                            // For simplicity, we'll use a placeholder foodId for now. In a real app, you'd search for the foodId.
-                            // This part needs to be improved to get the actual foodId from the food_name table.
-                            int foodId = 0; // Placeholder
-                            // You would typically get the foodId when you search for the food item initially
-                            // For now, let's assume we have a way to get the foodId from the foodDescription
-                            // This is a simplification for the current task.
-                            // A more robust solution would involve storing the Food object in the table model.
-                            mealItems.add(new models.MealItem(0, mealId, foodId, quantity, "g"));
+                            models.Food foodFromTable = (models.Food) mealTableModel.getValueAt(i, 4); // Retrieve the stored Food object
+                            int foodId = foodFromTable.getFoodID();
+                            mealItems.add(new models.MealItem(0, mealId, foodId, quantity, "g", foodFromTable.getCalories(), foodFromTable.getProtein(), foodFromTable.getCarbs(), foodFromTable.getFats(), foodFromTable.getFiber()));
                         }
                         mealDAO.saveMealItems(mealId, mealItems);
                         JOptionPane.showMessageDialog(Dashboard.this, "Meal saved successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);

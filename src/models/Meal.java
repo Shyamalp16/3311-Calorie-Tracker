@@ -9,6 +9,11 @@ public class Meal {
     private String mealType;
     private Date mealDate;
     private Timestamp createdAt;
+    private double totalCalories;
+    private double totalProtein;
+    private double totalCarbs;
+    private double totalFats;
+    private double totalFiber;
 
     public Meal(int mealId, int userId, String mealType, Date mealDate, Timestamp createdAt) {
         this.mealId = mealId;
@@ -16,6 +21,19 @@ public class Meal {
         this.mealType = mealType;
         this.mealDate = mealDate;
         this.createdAt = createdAt;
+    }
+
+    public Meal(int mealId, int userId, String mealType, Date mealDate, Timestamp createdAt, double totalCalories, double totalProtein, double totalCarbs, double totalFats, double totalFiber) {
+        this.mealId = mealId;
+        this.userId = userId;
+        this.mealType = mealType;
+        this.mealDate = mealDate;
+        this.createdAt = createdAt;
+        this.totalCalories = totalCalories;
+        this.totalProtein = totalProtein;
+        this.totalCarbs = totalCarbs;
+        this.totalFats = totalFats;
+        this.totalFiber = totalFiber;
     }
 
     // Getters
@@ -39,6 +57,26 @@ public class Meal {
         return createdAt;
     }
 
+    public double getTotalCalories() {
+        return totalCalories;
+    }
+
+    public double getTotalProtein() {
+        return totalProtein;
+    }
+
+    public double getTotalCarbs() {
+        return totalCarbs;
+    }
+
+    public double getTotalFats() {
+        return totalFats;
+    }
+
+    public double getTotalFiber() {
+        return totalFiber;
+    }
+
     // Setters
     public void setMealId(int mealId) {
         this.mealId = mealId;
@@ -58,5 +96,25 @@ public class Meal {
 
     public void setCreatedAt(Timestamp createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public void setTotalCalories(double totalCalories) {
+        this.totalCalories = totalCalories;
+    }
+
+    public void setTotalProtein(double totalProtein) {
+        this.totalProtein = totalProtein;
+    }
+
+    public void setTotalCarbs(double totalCarbs) {
+        this.totalCarbs = totalCarbs;
+    }
+
+    public void setTotalFats(double totalFats) {
+        this.totalFats = totalFats;
+    }
+
+    public void setTotalFiber(double totalFiber) {
+        this.totalFiber = totalFiber;
     }
 }

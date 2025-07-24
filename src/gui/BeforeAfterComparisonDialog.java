@@ -16,17 +16,19 @@ public class BeforeAfterComparisonDialog extends JDialog {
     private List<FoodSwapRecommendation> swaps;
     private SwapApplicationService swapApplicationService;
     private int userId;
+    private Date swapDate;
     private final Color COLOR_PRIMARY = new Color(76, 175, 80);
     private final Color COLOR_SECONDARY = new Color(33, 150, 243);
     private final Font FONT_TITLE = new Font("Arial", Font.BOLD, 18);
     private final Font FONT_SUBTITLE = new Font("Arial", Font.BOLD, 16);
     private final Font FONT_NORMAL = new Font("Arial", Font.PLAIN, 14);
     
-    public BeforeAfterComparisonDialog(JFrame parent, List<FoodSwapRecommendation> swaps) {
+    public BeforeAfterComparisonDialog(JFrame parent, List<FoodSwapRecommendation> swaps, int userId, Date swapDate) {
         super(parent, "Before/After Comparison", true);
         this.swaps = swaps;
         this.swapApplicationService = new SwapApplicationService();
-        this.userId = 1; // In a real app, get this from the parent or session
+        this.userId = userId;
+        this.swapDate = swapDate;
         initUI();
     }
     
@@ -262,7 +264,7 @@ public class BeforeAfterComparisonDialog extends JDialog {
     
     private void applySwaps(ActionEvent e) {
         try {
-            boolean success = swapApplicationService.applySwapsToCurrentMeal(swaps, userId);
+            boolean success = swapApplicationService.applySwapsToCurrentMeal(swaps, userId, swapDate);
             
             if (success) {
                 JOptionPane.showMessageDialog(this, 

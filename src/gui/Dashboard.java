@@ -64,8 +64,10 @@ public class Dashboard extends JFrame {
     private JComboBox<String> goal1Combo;
     private JComboBox<String> intensityCombo;
     private JComboBox<String> goal2Combo;
+    private JComboBox<String> intensity2Combo;
     private JPanel swapResultsPanel;
     private List<FoodSwapRecommendation> currentSwaps;
+    private JTextField swapDateField;
     
     // Dashboard panels for refresh
     private JPanel leftColumnPanel;
@@ -988,11 +990,32 @@ public class Dashboard extends JFrame {
         gbc.gridx = 1;
         panel.add(goal2Combo, gbc);
 
+        // Intensity 2
+        gbc.gridx = 2;
+        panel.add(new JLabel("Intensity 2:"), gbc);
+        
+        intensity2Combo = new JComboBox<>(new String[]{
+            "Slightly more", "Moderately more", "Significantly more"
+        });
+        intensity2Combo.setFont(FONT_NORMAL);
+        gbc.gridx = 3;
+        panel.add(intensity2Combo, gbc);
+
+        // Date selection
+        gbc.gridy = 3;
+        gbc.gridx = 0;
+        panel.add(new JLabel("Date for Swaps:"), gbc);
+        
+        swapDateField = new JTextField(new SimpleDateFormat("yyyy-MM-dd").format(new Date()), 10);
+        swapDateField.setFont(FONT_NORMAL);
+        gbc.gridx = 1;
+        panel.add(swapDateField, gbc);
+
         // Find Swaps button
         JButton findSwapsButton = new JButton("Find Swaps");
         styleButton(findSwapsButton);
         findSwapsButton.addActionListener(this::findSwapsAction);
-        gbc.gridx = 0; gbc.gridy = 3; gbc.gridwidth = 2;
+        gbc.gridx = 0; gbc.gridy = 4; gbc.gridwidth = 2;
         gbc.fill = GridBagConstraints.NONE;
         panel.add(findSwapsButton, gbc);
 
@@ -1000,12 +1023,20 @@ public class Dashboard extends JFrame {
     }
 
     private void findSwapsAction(ActionEvent e) {
-        // Get current meal items from today's meals
-        List<models.MealItem> todaysMealItems = getTodaysMealItems();
+        Date date;
+        try {
+            date = new SimpleDateFormat("yyyy-MM-dd").parse(swapDateField.getText());
+        } catch (ParseException ex) {
+            JOptionPane.showMessageDialog(this, "Invalid date format. Please use YYYY-MM-DD.", "Input Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // Get meal items from the selected date
+        List<models.MealItem> mealItems = getMealItemsForDate(date);
         
-        if (todaysMealItems.isEmpty()) {
+        if (mealItems.isEmpty()) {
             JOptionPane.showMessageDialog(this, 
-                "No meals found for today. Please log some meals first.", 
+                "No meals found for the selected date. Please log some meals first.", 
                 "No Meals", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
@@ -1022,22 +1053,22 @@ public class Dashboard extends JFrame {
 
         // Debug the swap engine if needed
         if (System.getProperty("debug.swaps") != null) {
-            logic.FoodSwapEngineDebugger.debugSwapEngine(todaysMealItems, goals);
+            logic.FoodSwapEngineDebugger.debugSwapEngine(mealItems, goals);
         }
         
         // Find swaps
-        currentSwaps = swapEngine.findFoodSwaps(todaysMealItems, goals);
+        currentSwaps = swapEngine.findFoodSwaps(mealItems, goals);
         
         // Display results
         displaySwapResults();
     }
 
-    private List<models.MealItem> getTodaysMealItems() {
+    private List<models.MealItem> getMealItemsForDate(Date date) {
         List<models.MealItem> allItems = new ArrayList<>();
-        // Get today's meals for the current user
-        List<models.Meal> todaysMeals = mealDAO.getMealsForUserAndDate(currentUser.getUserId(), new Date());
+        // Get meals for the selected date for the current user
+        List<models.Meal> meals = mealDAO.getMealsForUserAndDate(currentUser.getUserId(), date);
         
-        for (models.Meal meal : todaysMeals) {
+        for (models.Meal meal : meals) {
             List<models.MealItem> mealItems = mealDAO.getMealItemsByMealId(meal.getMealId());
             allItems.addAll(mealItems);
         }
@@ -1063,8 +1094,9 @@ public class Dashboard extends JFrame {
         String goal2 = (String) goal2Combo.getSelectedItem();
         if (!"None".equals(goal2)) {
             FoodSwapGoal.NutrientType nutrientType2 = parseNutrientType(goal2);
-            if (nutrientType2 != null && intensityLevel != null) {
-                goals.add(new FoodSwapGoal(nutrientType2, intensityLevel));
+            FoodSwapGoal.IntensityLevel intensityLevel2 = parseIntensityLevel((String) intensity2Combo.getSelectedItem());
+            if (nutrientType2 != null && intensityLevel2 != null) {
+                goals.add(new FoodSwapGoal(nutrientType2, intensityLevel2));
             }
         }
         
@@ -1226,12 +1258,20 @@ public class Dashboard extends JFrame {
     }
     
     private void applySwapsToCurrentMeals() {
+        Date swapDate;
         try {
-            boolean success = swapApplicationService.applySwapsToCurrentMeal(currentSwaps, currentUser.getUserId());
+            swapDate = new SimpleDateFormat("yyyy-MM-dd").parse(swapDateField.getText());
+        } catch (ParseException ex) {
+            JOptionPane.showMessageDialog(this, "Invalid date format. Please use YYYY-MM-DD.", "Input Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        try {
+            boolean success = swapApplicationService.applySwapsToCurrentMeal(currentSwaps, currentUser.getUserId(), swapDate);
             
             if (success) {
                 JOptionPane.showMessageDialog(this, 
-                    "Swaps applied successfully to current meals!",
+                    "Swaps applied successfully to the selected date's meals!",
                     "Success",
                     JOptionPane.INFORMATION_MESSAGE);
                 
@@ -1367,8 +1407,15 @@ public class Dashboard extends JFrame {
     }
 
     private void viewComparisonAction(ActionEvent e) {
+        Date swapDate;
+        try {
+            swapDate = new SimpleDateFormat("yyyy-MM-dd").parse(swapDateField.getText());
+        } catch (ParseException ex) {
+            JOptionPane.showMessageDialog(this, "Invalid date format. Please use YYYY-MM-DD.", "Input Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
         // Create and show the before/after comparison dialog
-        BeforeAfterComparisonDialog dialog = new BeforeAfterComparisonDialog(this, currentSwaps);
+        BeforeAfterComparisonDialog dialog = new BeforeAfterComparisonDialog(this, currentSwaps, currentUser.getUserId(), swapDate);
         dialog.setVisible(true);
     }
     

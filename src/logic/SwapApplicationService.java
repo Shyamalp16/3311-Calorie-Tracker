@@ -19,12 +19,12 @@ public class SwapApplicationService {
         swapHistoryDAO.createSwapHistoryTable();
     }
     
-    public boolean applySwapsToCurrentMeal(List<FoodSwapRecommendation> swaps, int userId) {
+    public boolean applySwapsToCurrentMeal(List<FoodSwapRecommendation> swaps, int userId, Date date) {
         boolean allSuccessful = true;
         
         for (FoodSwapRecommendation swap : swaps) {
-            // Find which meal contains this food item
-            int mealId = findMealIdForFood(userId, swap.getOriginalFood().getFoodID());
+            // Find which meal contains this food item on the given date
+            int mealId = findMealIdForFood(userId, swap.getOriginalFood().getFoodID(), date);
             
             if (mealId != -1) {
                 boolean success = applySingleSwap(swap, mealId, userId);
@@ -32,7 +32,7 @@ public class SwapApplicationService {
                     allSuccessful = false;
                 }
             } else {
-                System.err.println("Could not find meal for food: " + swap.getOriginalFood().getFoodDescription());
+                System.err.println("Could not find meal for food: " + swap.getOriginalFood().getFoodDescription() + " on date " + date);
                 allSuccessful = false;
             }
         }
@@ -104,12 +104,11 @@ public class SwapApplicationService {
         return false;
     }
     
-    private int findMealIdForFood(int userId, int foodId) {
-        // Get today's meals and check which one contains this food
-        Date today = new Date();
-        List<Meal> todaysMeals = mealDAO.getMealsForUserAndDate(userId, today);
+    private int findMealIdForFood(int userId, int foodId, Date date) {
+        // Get meals for the specified date and check which one contains this food
+        List<Meal> mealsOnDate = mealDAO.getMealsForUserAndDate(userId, date);
         
-        for (Meal meal : todaysMeals) {
+        for (Meal meal : mealsOnDate) {
             if (mealDAO.hasMealItemWithFood(meal.getMealId(), foodId)) {
                 return meal.getMealId();
             }
@@ -118,10 +117,10 @@ public class SwapApplicationService {
         return -1; // Not found
     }
     
-    public boolean revertSwap(int historyId) {
+    public boolean revertSwap(int historyId, int userId) {
         try {
             // Get the swap history record
-            List<SwapHistory> userHistory = swapHistoryDAO.getSwapHistoryForUser(getCurrentUserId());
+            List<SwapHistory> userHistory = swapHistoryDAO.getSwapHistoryForUser(userId);
             SwapHistory targetSwap = userHistory.stream()
                 .filter(sh -> sh.getHistoryId() == historyId)
                 .findFirst()

@@ -189,7 +189,7 @@ public class SwapHistoryDialog extends JDialog {
         
         if (result == JOptionPane.YES_OPTION) {
             try {
-                boolean success = swapApplicationService.revertSwap(selectedSwap.getHistoryId());
+                boolean success = swapApplicationService.revertSwap(selectedSwap.getHistoryId(), userId);
                 
                 if (success) {
                     JOptionPane.showMessageDialog(this, 

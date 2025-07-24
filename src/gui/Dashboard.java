@@ -49,6 +49,7 @@ public class Dashboard extends JFrame {
     private DefaultTableModel mealTableModel;
     private JTextField searchFoodField;
     private JSpinner quantitySpinner;
+    private JComboBox<String> unitComboBox; // Add this line
     private JPopupMenu searchResultsPopup;
     private JList<String> searchResultsList;
     private List<models.Food> currentSearchResults;
@@ -380,7 +381,7 @@ public class Dashboard extends JFrame {
         contentPanel.add(formPanel, BorderLayout.NORTH);
 
         // Food Items Table
-        String[] columnNames = {"Food Item", "Quantity", "Unit", "Calories", "FoodObject"}; // Added hidden column for Food object
+        String[] columnNames = {"Food Item", "Quantity", "Unit", "Calories", "MealItemObject"}; // Hidden column for MealItem
         mealTableModel = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -429,29 +430,79 @@ public class Dashboard extends JFrame {
         searchResultsList = new JList<>();
         searchResultsList.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
-                searchFoodField.setText(searchResultsList.getSelectedValue());
-                searchResultsPopup.setVisible(false);
+                int selectedIndex = searchResultsList.getSelectedIndex();
+                if (selectedIndex != -1) {
+                    searchFoodField.setText(searchResultsList.getSelectedValue());
+                    searchResultsPopup.setVisible(false);
+
+                    // Fetch and populate measures for the selected food
+                    models.Food selectedFood = currentSearchResults.get(selectedIndex);
+                    Map<String, Integer> measures = foodDAO.getMeasuresForFood(selectedFood.getFoodID());
+                    unitComboBox.removeAllItems();
+                    if (measures.isEmpty()) {
+                        unitComboBox.addItem("g"); // Default to grams if no specific measures
+                    } else {
+                        for (String measureName : measures.keySet()) {
+                            unitComboBox.addItem(measureName);
+                        }
+                    }
+                }
             }
         });
         searchResultsPopup.add(new JScrollPane(searchResultsList));
         quantitySpinner = new JSpinner(new SpinnerNumberModel(1, 1, 999, 1));
         quantitySpinner.setPreferredSize(new Dimension(80, 25)); // Adjust size as needed
         addFoodPanel.add(quantitySpinner);
+
+        unitComboBox = new JComboBox<>();
+        unitComboBox.setPreferredSize(new Dimension(100, 25));
+        addFoodPanel.add(unitComboBox);
+
         JButton addItemButton = new JButton("Add Item");
         addItemButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 int selectedIndex = searchResultsList.getSelectedIndex();
                 if (selectedIndex != -1 && currentSearchResults != null && selectedIndex < currentSearchResults.size()) {
-                    models.Food selectedFood = currentSearchResults.get(selectedIndex);
+                    models.Food selectedFoodSummary = currentSearchResults.get(selectedIndex);
+                    models.Food selectedFood = foodDAO.getFoodDetails(selectedFoodSummary.getFoodID());
                     int quantity = (int) quantitySpinner.getValue();
-                    // Assign a random calorie value for display purposes
-                    double calories = 1 + new Random().nextInt(50);
-                    mealTableModel.addRow(new Object[]{selectedFood.getFoodDescription(), quantity, "g", calories, selectedFood}); // Store the Food object
-                    updateTotalCalories();
-                    searchFoodField.setText("Search food items...");
-                    quantitySpinner.setValue(1);
-                    searchResultsPopup.setVisible(false);
+                    String selectedUnit = (String) unitComboBox.getSelectedItem();
+
+                    if (selectedFood != null) {
+                        // Get the measure ID for the selected unit
+                        Map<String, Integer> measures = foodDAO.getMeasuresForFood(selectedFood.getFoodID());
+                        int measureId = measures.getOrDefault(selectedUnit, -1);
+
+                        // Get the conversion factor
+                        double conversionFactor = 1.0;
+                        if (measureId != -1) {
+                            conversionFactor = foodDAO.getConversionFactor(selectedFood.getFoodID(), measureId);
+                        } else if (selectedUnit.equals("g")) {
+                            // Special handling for 'g' if it's not in the measures map, assume 100g base
+                            conversionFactor = 1.0 / 100.0;
+                        }
+
+                        System.out.println("UI: Food details fetched for " + selectedFood.getFoodDescription());
+                        System.out.println("UI: Calories=" + selectedFood.getCalories() + ", Protein=" + selectedFood.getProtein());
+
+                        // Apply the conversion factor to the nutrient values
+                        double calories = selectedFood.getNutrientValue("ENERGY (KILOCALORIES)") * quantity * conversionFactor;
+                        double protein = selectedFood.getNutrientValue("PROTEIN") * quantity * conversionFactor;
+                        double carbs = selectedFood.getNutrientValue("CARBOHYDRATE, TOTAL (BY DIFFERENCE)") * quantity * conversionFactor;
+                        double fats = selectedFood.getNutrientValue("FAT (TOTAL LIPIDS)") * quantity * conversionFactor;
+                        double fiber = selectedFood.getNutrientValue("FIBRE, TOTAL DIETARY") * quantity * conversionFactor;
+
+                        models.MealItem mealItem = new models.MealItem(0, 0, selectedFood.getFoodID(), quantity, selectedUnit, calories, protein, carbs, fats, fiber);
+
+                        mealTableModel.addRow(new Object[]{selectedFood.getFoodDescription(), quantity, selectedUnit, calories, mealItem}); // Store the MealItem object
+                        updateTotalCalories();
+                        searchFoodField.setText("Search food items...");
+                        quantitySpinner.setValue(1);
+                        searchResultsPopup.setVisible(false);
+                    } else {
+                        JOptionPane.showMessageDialog(Dashboard.this, "Could not retrieve full details for the selected food.", "Data Error", JOptionPane.ERROR_MESSAGE);
+                    }
                 } else {
                     JOptionPane.showMessageDialog(Dashboard.this, "Please select a food item to add.", "No Food Selected", JOptionPane.WARNING_MESSAGE);
                 }
@@ -490,18 +541,20 @@ public class Dashboard extends JFrame {
                     String mealType = (String) mealTypeCombo.getSelectedItem();
                     Date mealDate = new SimpleDateFormat("yyyy-MM-dd").parse(dateField.getText());
 
+                    if (!mealType.equals("Snack")) {
+                        List<models.Meal> existingMeals = mealDAO.getMealsForUserAndDate(currentUser.getUserId(), mealDate);
+                        for (models.Meal existingMeal : existingMeals) {
+                            if (existingMeal.getMealType().equals(mealType)) {
+                                JOptionPane.showMessageDialog(Dashboard.this, "You have already logged a " + mealType + " for this date.", "Duplicate Meal", JOptionPane.WARNING_MESSAGE);
+                                return;
+                            }
+                        }
+                    }
+
                     // Create a list of meal items with random nutrient values
                     List<models.MealItem> mealItems = new ArrayList<>();
-                    Random rand = new Random();
                     for (int i = 0; i < mealTableModel.getRowCount(); i++) {
-                        models.Food foodFromTable = (models.Food) mealTableModel.getValueAt(i, 4);
-                        int quantity = (int) mealTableModel.getValueAt(i, 1);
-                        double calories = 1 + rand.nextInt(50);
-                        double protein = 1 + rand.nextInt(50);
-                        double carbs = 1 + rand.nextInt(50);
-                        double fats = 1 + rand.nextInt(50);
-                        double fiber = 1 + rand.nextInt(50);
-                        mealItems.add(new models.MealItem(0, 0, foodFromTable.getFoodID(), quantity, "g", calories, protein, carbs, fats, fiber));
+                        mealItems.add((models.MealItem) mealTableModel.getValueAt(i, 4));
                     }
 
                     // Calculate total nutrients from the meal items

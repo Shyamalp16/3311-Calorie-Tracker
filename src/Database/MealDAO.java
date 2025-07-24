@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Date;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
+import java.util.Map;
 
 public class MealDAO {
 
@@ -117,14 +118,37 @@ public class MealDAO {
     }
 
     public boolean updateMealItem(int mealId, int originalFoodId, int newFoodId, double newQuantity, String newUnit) {
+        FoodDAO foodDAO = new FoodDAO();
+        models.Food newFood = foodDAO.getFoodDetails(newFoodId);
+
+        if (newFood == null) {
+            System.err.println("Error: Could not retrieve details for the new food item.");
+            return false;
+        }
+
+        // Get the measure ID for the selected unit
+        Map<String, Integer> measures = foodDAO.getMeasuresForFood(newFoodId);
+        int measureId = measures.getOrDefault(newUnit, -1);
+
+        // Get the conversion factor
+        double conversionFactor = 1.0;
+        if (measureId != -1) {
+            conversionFactor = foodDAO.getConversionFactor(newFoodId, measureId);
+        } else if (newUnit.equals("g")) {
+            conversionFactor = 1.0 / 100.0;
+        }
+
+        // Calculate the new nutrient values
+        double calories = newFood.getCalories() * newQuantity * conversionFactor;
+        double protein = newFood.getProtein() * newQuantity * conversionFactor;
+        double carbs = newFood.getCarbs() * newQuantity * conversionFactor;
+        double fats = newFood.getFats() * newQuantity * conversionFactor;
+        double fiber = newFood.getFiber() * newQuantity * conversionFactor;
+
         String sql = """
             UPDATE meal_items 
             SET food_id = ?, quantity = ?, unit = ?, 
-                calories = (SELECT COALESCE(n_cal.NutrientValue, 0) * ? FROM nutrient_amount n_cal WHERE n_cal.FoodID = ? AND n_cal.NutrientNameID = 208 LIMIT 1),
-                protein = (SELECT COALESCE(n_prot.NutrientValue, 0) * ? FROM nutrient_amount n_prot WHERE n_prot.FoodID = ? AND n_prot.NutrientNameID = 203 LIMIT 1),
-                carbs = (SELECT COALESCE(n_carb.NutrientValue, 0) * ? FROM nutrient_amount n_carb WHERE n_carb.FoodID = ? AND n_carb.NutrientNameID = 205 LIMIT 1),
-                fats = (SELECT COALESCE(n_fat.NutrientValue, 0) * ? FROM nutrient_amount n_fat WHERE n_fat.FoodID = ? AND n_fat.NutrientNameID = 204 LIMIT 1),
-                fiber = (SELECT COALESCE(n_fiber.NutrientValue, 0) * ? FROM nutrient_amount n_fiber WHERE n_fiber.FoodID = ? AND n_fiber.NutrientNameID = 291 LIMIT 1)
+                calories = ?, protein = ?, carbs = ?, fats = ?, fiber = ?
             WHERE meal_id = ? AND food_id = ?
             """;
         
@@ -134,21 +158,13 @@ public class MealDAO {
             pstmt.setInt(1, newFoodId);
             pstmt.setDouble(2, newQuantity);
             pstmt.setString(3, newUnit);
-            
-            // Set quantity multipliers for nutrient calculations
-            pstmt.setDouble(4, newQuantity);  // calories
-            pstmt.setInt(5, newFoodId);
-            pstmt.setDouble(6, newQuantity);  // protein
-            pstmt.setInt(7, newFoodId);
-            pstmt.setDouble(8, newQuantity);  // carbs
-            pstmt.setInt(9, newFoodId);
-            pstmt.setDouble(10, newQuantity); // fats
-            pstmt.setInt(11, newFoodId);
-            pstmt.setDouble(12, newQuantity); // fiber
-            pstmt.setInt(13, newFoodId);
-            
-            pstmt.setInt(14, mealId);
-            pstmt.setInt(15, originalFoodId);
+            pstmt.setDouble(4, calories);
+            pstmt.setDouble(5, protein);
+            pstmt.setDouble(6, carbs);
+            pstmt.setDouble(7, fats);
+            pstmt.setDouble(8, fiber);
+            pstmt.setInt(9, mealId);
+            pstmt.setInt(10, originalFoodId);
             
             int rowsAffected = pstmt.executeUpdate();
             

@@ -120,4 +120,33 @@ public class UserDAO {
         
         return null;
     }
+    
+    public User login(String username, String password) {
+        String sql = "SELECT * FROM users WHERE username = ? AND password = ?";
+        try (Connection conn = DatabaseConnector.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, username);
+            stmt.setString(2, password);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    User user = new User();
+                    user.setUserId(rs.getInt("user_id"));
+                    user.setName(rs.getString("name"));
+                    user.setUsername(rs.getString("username"));
+                    user.setPassword(rs.getString("password"));
+                    user.setGender(rs.getString("gender"));
+                    user.setBirthDate(rs.getDate("birth_date"));
+                    user.setHeight(rs.getDouble("height"));
+                    user.setWeight(rs.getDouble("weight"));
+                    user.setActivityLevel(rs.getString("activity_level"));
+                    user.setCreatedAt(rs.getTimestamp("created_at"));
+                    return user;
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error during login: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return null;
+    }
 }

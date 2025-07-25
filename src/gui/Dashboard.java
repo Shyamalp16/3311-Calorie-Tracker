@@ -427,25 +427,22 @@ public class Dashboard extends JFrame {
         addFoodPanel.setBackground(Color.WHITE);
         addFoodPanel.add(new JLabel("Add Food:"));
         searchFoodField = new JTextField("Search food items...", 20);
-        // Use a DocumentListener for text changes, which is more robust than a KeyListener.
+        // --- Autocomplete Search Field Setup ---
+
+        // This flag prevents the DocumentListener from firing when we programmatically set the text
+        final boolean[] isAdjusting = {false};
+
+        // 1. DocumentListener: Updates the suggestion list as the user types.
         searchFoodField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
             public void changedUpdate(javax.swing.event.DocumentEvent e) { update(); }
             public void removeUpdate(javax.swing.event.DocumentEvent e) { update(); }
             public void insertUpdate(javax.swing.event.DocumentEvent e) { update(); }
 
             public void update() {
-                // Use invokeLater to ensure UI updates are safe from the listener thread.
+                if (isAdjusting[0]) return;
+
                 SwingUtilities.invokeLater(() -> {
                     String searchTerm = searchFoodField.getText().trim();
-
-                    // If the user selected an item, the text is set, and we should not show the popup again.
-                    if (currentSearchResults.stream().anyMatch(f -> f.getFoodDescription().equals(searchTerm))) {
-                        if (searchResultsPopup.isVisible()) {
-                            searchResultsPopup.setVisible(false);
-                        }
-                        return;
-                    }
-
                     if (searchTerm.length() > 2) {
                         currentSearchResults = foodDAO.searchFoodByName(searchTerm);
                         DefaultListModel<String> listModel = new DefaultListModel<>();
@@ -455,9 +452,9 @@ public class Dashboard extends JFrame {
                         searchResultsList.setModel(listModel);
 
                         if (!listModel.isEmpty()) {
-                            // Only show the popup if it's not already visible.
-                            // This prevents the focus-stealing issue.
                             if (!searchResultsPopup.isVisible()) {
+                                // This needs to be focusable=false to prevent stealing focus
+                                searchResultsPopup.setFocusable(false);
                                 searchResultsPopup.show(searchFoodField, 0, searchFoodField.getHeight());
                             }
                         } else {
@@ -470,24 +467,53 @@ public class Dashboard extends JFrame {
             }
         });
 
-        // Use a KeyListener for handling navigation (arrow keys, escape).
+        // 2. KeyListener: Handles navigation (Up, Down, Enter, Escape).
         searchFoodField.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
-                if (searchResultsPopup.isVisible()) {
-                    switch (e.getKeyCode()) {
-                        case KeyEvent.VK_DOWN:
-                            // Move focus to the list and select the first item.
-                            searchResultsList.requestFocusInWindow();
-                            searchResultsList.setSelectedIndex(0);
-                            e.consume(); // Prevent the text field from processing the event.
-                            break;
-                        case KeyEvent.VK_ESCAPE:
-                            // Hide the popup.
+                if (!searchResultsPopup.isVisible()) return;
+
+                int listSize = searchResultsList.getModel().getSize();
+                if (listSize == 0) return;
+
+                int selectedIndex = searchResultsList.getSelectedIndex();
+
+                switch (e.getKeyCode()) {
+                    case KeyEvent.VK_DOWN:
+                        searchResultsList.setSelectedIndex((selectedIndex + 1) % listSize);
+                        searchResultsList.ensureIndexIsVisible(searchResultsList.getSelectedIndex());
+                        e.consume();
+                        break;
+                    case KeyEvent.VK_UP:
+                        searchResultsList.setSelectedIndex((selectedIndex - 1 + listSize) % listSize);
+                        searchResultsList.ensureIndexIsVisible(searchResultsList.getSelectedIndex());
+                        e.consume();
+                        break;
+                    case KeyEvent.VK_ENTER:
+                        if (searchResultsList.getSelectedIndex() != -1) {
+                            isAdjusting[0] = true;
+                            searchFoodField.setText(searchResultsList.getSelectedValue());
+                            isAdjusting[0] = false;
                             searchResultsPopup.setVisible(false);
-                            e.consume();
-                            break;
-                    }
+
+                            // Populate measures
+                            models.Food selectedFood = currentSearchResults.get(searchResultsList.getSelectedIndex());
+                            Map<String, Integer> measures = foodDAO.getMeasuresForFood(selectedFood.getFoodID());
+                            unitComboBox.removeAllItems();
+                            if (measures.isEmpty()) {
+                                unitComboBox.addItem("g");
+                            } else {
+                                for (String measureName : measures.keySet()) {
+                                    unitComboBox.addItem(measureName);
+                                }
+                            }
+                        }
+                        e.consume();
+                        break;
+                    case KeyEvent.VK_ESCAPE:
+                        searchResultsPopup.setVisible(false);
+                        e.consume();
+                        break;
                 }
             }
         });
@@ -495,24 +521,25 @@ public class Dashboard extends JFrame {
 
         searchResultsPopup = new JPopupMenu();
         searchResultsList = new JList<>();
-        searchResultsList.addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting()) {
-                int selectedIndex = searchResultsList.getSelectedIndex();
-                if (selectedIndex != -1) {
+
+        // 3. MouseListener: Handles selecting an item with a click.
+        searchResultsList.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                if (e.getClickCount() == 1 && searchResultsList.getSelectedIndex() != -1) {
+                    isAdjusting[0] = true;
                     searchFoodField.setText(searchResultsList.getSelectedValue());
+                    isAdjusting[0] = false;
                     searchResultsPopup.setVisible(false);
 
-                    // Fetch and populate measures for the selected food
-                    models.Food selectedFood = foodDAO.getFoodById(currentSearchResults.get(selectedIndex).getFoodID()).orElse(null);
-                    if (selectedFood != null) {
-                        Map<String, Integer> measures = foodDAO.getMeasuresForFood(selectedFood.getFoodID());
-                        unitComboBox.removeAllItems();
-                        if (measures.isEmpty()) {
-                            unitComboBox.addItem("g"); // Default to grams if no specific measures
-                        } else {
-                            for (String measureName : measures.keySet()) {
-                                unitComboBox.addItem(measureName);
-                            }
+                    // Populate measures
+                    models.Food selectedFood = currentSearchResults.get(searchResultsList.getSelectedIndex());
+                    Map<String, Integer> measures = foodDAO.getMeasuresForFood(selectedFood.getFoodID());
+                    unitComboBox.removeAllItems();
+                    if (measures.isEmpty()) {
+                        unitComboBox.addItem("g");
+                    } else {
+                        for (String measureName : measures.keySet()) {
+                            unitComboBox.addItem(measureName);
                         }
                     }
                 }

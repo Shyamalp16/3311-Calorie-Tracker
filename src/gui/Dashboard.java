@@ -71,6 +71,7 @@ public class Dashboard extends JFrame {
     private JTextField swapDateField;
     private List<models.MealItem> loggedMealItems;
     private JTextField dashboardDateField;
+    private JTabbedPane tabbedPane;
 
     // Dashboard panels for refresh
     private JPanel leftColumnPanel;
@@ -109,7 +110,7 @@ public class Dashboard extends JFrame {
         getContentPane().setBackground(COLOR_BACKGROUND);
 
         // Tabbed Pane
-        JTabbedPane tabbedPane = new JTabbedPane();
+        tabbedPane = new JTabbedPane();
         tabbedPane.setFont(FONT_NORMAL);
 
         // Add tabs
@@ -666,8 +667,11 @@ public class Dashboard extends JFrame {
                         }
                         mealDAO.saveMealItems(mealId, mealItems);
                         JOptionPane.showMessageDialog(Dashboard.this, "Meal saved successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
-                        mealTableModel.setRowCount(0); // Clear the table
-                        loggedMealItems.clear(); // Clear the backing list
+                        
+                        // Refresh all charts and clear the current log
+                        refreshAllTabs();
+                        mealTableModel.setRowCount(0);
+                        loggedMealItems.clear();
                         updateTotalCalories();
                     } else {
                         JOptionPane.showMessageDialog(Dashboard.this, "Failed to save meal.", "Error", JOptionPane.ERROR_MESSAGE);
@@ -763,52 +767,51 @@ public class Dashboard extends JFrame {
         rightColumn.removeAll();
 
         int days = 0;
-        if ("Today".equals(timePeriod)) {
-            days = 1;
-        } else if ("Last 7 days".equals(timePeriod)) {
-            days = 7;
-        } else if ("Last 30 days".equals(timePeriod)) {
-            days = 30;
-        } else if ("Last 3 months".equals(timePeriod)) {
-            days = 90;
+        switch (timePeriod) {
+            case "Today":
+                days = 1;
+                break;
+            case "Last 7 days":
+                days = 7;
+                break;
+            case "Last 30 days":
+                days = 30;
+                break;
+            case "Last 3 months":
+                days = 90;
+                break;
         }
 
         Date endDate = new Date();
         Calendar cal = Calendar.getInstance();
         cal.setTime(endDate);
-        if (days > 1) {
-            cal.add(Calendar.DAY_OF_MONTH, -days);
-        }
+        cal.add(Calendar.DAY_OF_MONTH, -days + 1); // Adjust to get the correct start date
         Date startDate = cal.getTime();
 
         List<models.Meal> meals = mealDAO.getMealsInDateRange(currentUser.getUserId(), startDate, endDate);
 
-        // Daily Nutrient Breakdown (Pie Chart)
-        Map<String, Double> nutrientData = new java.util.HashMap<>();
+        // --- Left Column: Pie Chart and Averages ---
         double totalCalories = meals.stream().mapToDouble(models.Meal::getTotalCalories).sum();
         double totalProtein = meals.stream().mapToDouble(models.Meal::getTotalProtein).sum();
         double totalCarbs = meals.stream().mapToDouble(models.Meal::getTotalCarbs).sum();
         double totalFats = meals.stream().mapToDouble(models.Meal::getTotalFats).sum();
         double totalFiber = meals.stream().mapToDouble(models.Meal::getTotalFiber).sum();
 
-        nutrientData.put("Calories", totalCalories);
+        // Daily Nutrient Breakdown (Pie Chart)
+        Map<String, Double> nutrientData = new java.util.HashMap<>();
         nutrientData.put("Protein", totalProtein * 4); // 4 calories per gram
         nutrientData.put("Carbs", totalCarbs * 4); // 4 calories per gram
         nutrientData.put("Fats", totalFats * 9); // 9 calories per gram
-        nutrientData.put("Fiber", totalFiber);
-
-        leftColumn.add(new JLabel("Daily Nutrient Breakdown (Calories)"));
+        leftColumn.add(new JLabel("Nutrient Breakdown (Calories)"));
         leftColumn.add(ChartFactory.createChart(ChartType.PIE, "Nutrient Breakdown", nutrientData));
 
         // Average Daily Intake
         leftColumn.add(Box.createVerticalStrut(20));
         leftColumn.add(new JLabel("Average Daily Intake"));
-
         models.Goal userGoals = goalDAO.getGoalByUserId(currentUser.getUserId()).orElse(null);
         double recommendedCalories = (userGoals != null) ? userGoals.getCalories() : 2000;
         double recommendedProtein = (userGoals != null) ? userGoals.getProtein() : 75;
         double recommendedFiber = (userGoals != null) ? userGoals.getFiber() : 25;
-
         double avgCalories = totalCalories / (days > 0 ? days : 1);
         leftColumn.add(new JLabel(String.format("Calories: %.0f / %.0f recommended", avgCalories, recommendedCalories)));
         double avgProtein = totalProtein / (days > 0 ? days : 1);
@@ -816,25 +819,44 @@ public class Dashboard extends JFrame {
         double avgFiber = totalFiber / (days > 0 ? days : 1);
         leftColumn.add(new JLabel(String.format("Fiber: %.0fg / %.0fg recommended", avgFiber, recommendedFiber)));
 
-        // Trends Over Time (Line Chart)
+        // --- Right Column: Line and Bar Charts ---
+
+        // First, calculate total calories per day
+        Map<java.time.LocalDate, Double> dailyTotals = new java.util.TreeMap<>();
+        for (models.Meal meal : meals) {
+            java.time.LocalDate mealDate = new java.sql.Date(meal.getMealDate().getTime()).toLocalDate();
+            dailyTotals.put(mealDate, dailyTotals.getOrDefault(mealDate, 0.0) + meal.getTotalCalories());
+        }
+
+        // Then, create the trend data with formatted labels based on the selected time period
         Map<String, Double> calorieTrendData = new java.util.LinkedHashMap<>();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-        if (days > 0) {
+        java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("dd-MMM");
+
+        if (days <= 7) { // Daily view for 7 days or less
+            java.time.LocalDate current = new java.sql.Date(startDate.getTime()).toLocalDate();
             for (int i = 0; i < days; i++) {
-                cal.setTime(startDate);
-                cal.add(Calendar.DAY_OF_MONTH, i);
-                String dateStr = sdf.format(cal.getTime());
-                calorieTrendData.put(dateStr, 0.0);
+                calorieTrendData.put(current.format(formatter), dailyTotals.getOrDefault(current, 0.0));
+                current = current.plusDays(1);
+            }
+        } else { // Weekly average view for 30 or 90 days
+            Map<java.time.LocalDate, List<Double>> weeklyData = new java.util.TreeMap<>();
+            java.time.LocalDate current = new java.sql.Date(startDate.getTime()).toLocalDate();
+            for (int i = 0; i < days; i++) {
+                java.time.LocalDate startOfWeek = current.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
+                weeklyData.computeIfAbsent(startOfWeek, k -> new ArrayList<>()).add(dailyTotals.getOrDefault(current, 0.0));
+                current = current.plusDays(1);
+            }
+            for (Map.Entry<java.time.LocalDate, List<Double>> entry : weeklyData.entrySet()) {
+                double weeklyTotal = entry.getValue().stream().mapToDouble(Double::doubleValue).sum();
+                double weeklyAverage = weeklyTotal / 7.0; // Average over 7 days in the week
+                calorieTrendData.put(entry.getKey().format(formatter), weeklyAverage);
             }
         }
-        for (models.Meal meal : meals) {
-            String dateStr = sdf.format(meal.getMealDate());
-            calorieTrendData.put(dateStr, calorieTrendData.getOrDefault(dateStr, 0.0) + meal.getTotalCalories());
-        }
+        
         rightColumn.add(new JLabel("Trends Over Time"));
         rightColumn.add(ChartFactory.createChart(ChartType.LINE, "Calorie Intake", calorieTrendData));
 
-        // Top 5 Nutrients (Bar Chart)
+        // Top Nutrients (Bar Chart)
         rightColumn.add(Box.createVerticalStrut(20));
         rightColumn.add(new JLabel("Total Nutrient Intake (grams)"));
         Map<String, Double> topNutrientsData = new java.util.HashMap<>();
@@ -1395,8 +1417,8 @@ public class Dashboard extends JFrame {
                     "Success",
                     JOptionPane.INFORMATION_MESSAGE);
                 
-                // Refresh the dashboard to show updated data
-                refreshDashboard();
+                // Refresh all application charts to show updated data
+                refreshAllTabs();
                 
                 // Clear current swaps since they've been applied
                 currentSwaps.clear();
@@ -1482,8 +1504,8 @@ public class Dashboard extends JFrame {
                 
                 JOptionPane.showMessageDialog(this, message, "Success", JOptionPane.INFORMATION_MESSAGE);
                 
-                // Refresh the dashboard to show updated data
-                refreshDashboard();
+                // Refresh all application charts to show updated data
+                refreshAllTabs();
             } else {
                 JOptionPane.showMessageDialog(this, 
                     "Some swaps could not be applied. Check console for details.",
@@ -1509,6 +1531,17 @@ public class Dashboard extends JFrame {
         }
         List<models.Meal> mealsForDate = mealDAO.getMealsForUserAndDate(currentUser.getUserId(), new java.sql.Date(selectedDate.getTime()));
         updateDashboardPanels(mealsForDate);
+    }
+
+    public void refreshAllTabs() {
+        // Refresh the main dashboard tab
+        refreshDashboard();
+
+        // Re-create and replace the other tabs to ensure they have the latest data
+        if (tabbedPane != null && tabbedPane.getTabCount() > 4) {
+            tabbedPane.setComponentAt(3, createNutritionAnalysisPanel());
+            tabbedPane.setComponentAt(4, createCanadaFoodGuidePanel());
+        }
     }
 
     private void updateDashboardPanels(List<models.Meal> todaysMeals) {

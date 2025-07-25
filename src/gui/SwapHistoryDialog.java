@@ -200,9 +200,9 @@ public class SwapHistoryDialog extends JDialog {
                     // Refresh the history table
                     loadSwapHistory();
                     
-                    // Refresh parent dashboard if it's a Dashboard
+                    // Refresh all tabs on the parent dashboard
                     if (getParent() instanceof gui.Dashboard) {
-                        ((gui.Dashboard) getParent()).refreshDashboard();
+                        ((gui.Dashboard) getParent()).refreshAllTabs();
                     }
                 } else {
                     JOptionPane.showMessageDialog(this, 

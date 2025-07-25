@@ -69,7 +69,8 @@ public class Dashboard extends JFrame {
     private JPanel swapResultsPanel;
     private List<FoodSwapRecommendation> currentSwaps;
     private JTextField swapDateField;
-    
+    private List<models.MealItem> loggedMealItems;
+
     // Dashboard panels for refresh
     private JPanel leftColumnPanel;
     private ChartPanel nutritionChartPanel;
@@ -99,6 +100,7 @@ public class Dashboard extends JFrame {
         swapEngine = new FoodSwapEngine(); // Initialize swap engine
         swapApplicationService = new SwapApplicationService(); // Initialize swap application service
         currentSwaps = new ArrayList<>();
+        loggedMealItems = new ArrayList<>();
         setTitle("Main Application - Dashboard");
         setSize(1200, 800); // Increased size for better layout
         setLocationRelativeTo(null);
@@ -384,7 +386,7 @@ public class Dashboard extends JFrame {
         contentPanel.add(formPanel, BorderLayout.NORTH);
 
         // Food Items Table
-        String[] columnNames = {"Food Item", "Quantity", "Unit", "Calories", "MealItemObject"}; // Hidden column for MealItem
+        String[] columnNames = {"Food Item", "Quantity", "Unit", "Calories"}; // Removed hidden column
         mealTableModel = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -542,8 +544,9 @@ public class Dashboard extends JFrame {
                         double fiber = selectedFood.getFiber() * quantity * conversionFactor;
 
                         models.MealItem mealItem = new models.MealItem(0, 0, selectedFood.getFoodID(), quantity, selectedUnit, calories, protein, carbs, fats, fiber);
+                        loggedMealItems.add(mealItem); // Add to our backing list
 
-                        mealTableModel.addRow(new Object[]{selectedFood.getFoodDescription(), quantity, selectedUnit, calories, mealItem}); // Store the MealItem object
+                        mealTableModel.addRow(new Object[]{selectedFood.getFoodDescription(), quantity, selectedUnit, calories}); // Add only visible data
                         updateTotalCalories();
                         searchFoodField.setText("Search food items...");
                         quantitySpinner.setValue(1);
@@ -563,6 +566,7 @@ public class Dashboard extends JFrame {
                 int selectedRow = table.getSelectedRow();
                 if (selectedRow != -1) {
                     mealTableModel.removeRow(selectedRow);
+                    loggedMealItems.remove(selectedRow); // Remove from backing list
                     updateTotalCalories();
                 }
             }
@@ -595,11 +599,8 @@ public class Dashboard extends JFrame {
                         }
                     }
 
-                    // Create a list of meal items with random nutrient values
-                    List<models.MealItem> mealItems = new ArrayList<>();
-                    for (int i = 0; i < mealTableModel.getRowCount(); i++) {
-                        mealItems.add((models.MealItem) mealTableModel.getValueAt(i, 4));
-                    }
+                    // Use the backing list of MealItem objects
+                    List<models.MealItem> mealItems = new ArrayList<>(loggedMealItems);
 
                     // Calculate total nutrients from the meal items
                     double totalCalories = mealItems.stream().mapToDouble(models.MealItem::getCalories).sum();
@@ -620,6 +621,7 @@ public class Dashboard extends JFrame {
                         mealDAO.saveMealItems(mealId, mealItems);
                         JOptionPane.showMessageDialog(Dashboard.this, "Meal saved successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
                         mealTableModel.setRowCount(0); // Clear the table
+                        loggedMealItems.clear(); // Clear the backing list
                         updateTotalCalories();
                     } else {
                         JOptionPane.showMessageDialog(Dashboard.this, "Failed to save meal.", "Error", JOptionPane.ERROR_MESSAGE);

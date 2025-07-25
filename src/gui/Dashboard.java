@@ -1016,7 +1016,7 @@ public class Dashboard extends JFrame {
         gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 4;
         panel.add(titleLabel, gbc);
 
-        // Goal 1
+        // --- Goal 1 ---
         gbc.gridwidth = 1; gbc.gridy = 1;
         gbc.gridx = 0;
         panel.add(new JLabel("Goal 1:"), gbc);
@@ -1029,18 +1029,16 @@ public class Dashboard extends JFrame {
         gbc.gridx = 1;
         panel.add(goal1Combo, gbc);
 
-        // Intensity
+        // --- Intensity 1 ---
         gbc.gridx = 2;
         panel.add(new JLabel("Intensity:"), gbc);
         
-        intensityCombo = new JComboBox<>(new String[]{
-            "Slightly more", "Moderately more", "Significantly more"
-        });
+        intensityCombo = new JComboBox<>();
         intensityCombo.setFont(FONT_NORMAL);
         gbc.gridx = 3;
         panel.add(intensityCombo, gbc);
 
-        // Goal 2 (Optional)
+        // --- Goal 2 (Optional) ---
         gbc.gridy = 2;
         gbc.gridx = 0;
         panel.add(new JLabel("Goal 2 (Optional):"), gbc);
@@ -1053,18 +1051,33 @@ public class Dashboard extends JFrame {
         gbc.gridx = 1;
         panel.add(goal2Combo, gbc);
 
-        // Intensity 2
+        // --- Intensity 2 ---
         gbc.gridx = 2;
-        panel.add(new JLabel("Intensity 2:"), gbc);
+        JLabel intensity2Label = new JLabel("Intensity 2:");
+        panel.add(intensity2Label, gbc);
         
-        intensity2Combo = new JComboBox<>(new String[]{
-            "Slightly more", "Moderately more", "Significantly more"
-        });
+        intensity2Combo = new JComboBox<>();
         intensity2Combo.setFont(FONT_NORMAL);
         gbc.gridx = 3;
         panel.add(intensity2Combo, gbc);
 
-        // Date selection
+        // --- Action Listeners for Dynamic UI ---
+        goal1Combo.addActionListener(e -> updateIntensityOptions(goal1Combo, intensityCombo));
+        goal2Combo.addActionListener(e -> {
+            boolean isGoalSelected = !"None".equals(goal2Combo.getSelectedItem());
+            intensity2Label.setVisible(isGoalSelected);
+            intensity2Combo.setVisible(isGoalSelected);
+            if (isGoalSelected) {
+                updateIntensityOptions(goal2Combo, intensity2Combo);
+            }
+        });
+
+        // --- Initial UI State ---
+        updateIntensityOptions(goal1Combo, intensityCombo);
+        intensity2Label.setVisible(false);
+        intensity2Combo.setVisible(false);
+
+        // --- Date selection ---
         gbc.gridy = 3;
         gbc.gridx = 0;
         panel.add(new JLabel("Date for Swaps:"), gbc);
@@ -1074,7 +1087,7 @@ public class Dashboard extends JFrame {
         gbc.gridx = 1;
         panel.add(swapDateField, gbc);
 
-        // Find Swaps button
+        // --- Find Swaps button ---
         JButton findSwapsButton = new JButton("Find Swaps");
         styleButton(findSwapsButton);
         findSwapsButton.addActionListener(this::findSwapsAction);
@@ -1083,6 +1096,23 @@ public class Dashboard extends JFrame {
         panel.add(findSwapsButton, gbc);
 
         return panel;
+    }
+
+    private void updateIntensityOptions(JComboBox<String> goalCombo, JComboBox<String> intensityCombo) {
+        String selectedGoal = (String) goalCombo.getSelectedItem();
+        intensityCombo.removeAllItems();
+
+        if (selectedGoal == null) return;
+
+        if (selectedGoal.startsWith("Increase")) {
+            intensityCombo.addItem("Slightly more");
+            intensityCombo.addItem("Moderately more");
+            intensityCombo.addItem("Significantly more");
+        } else if (selectedGoal.startsWith("Reduce")) {
+            intensityCombo.addItem("Slightly less");
+            intensityCombo.addItem("Moderately less");
+            intensityCombo.addItem("Significantly less");
+        }
     }
 
     private void findSwapsAction(ActionEvent e) {
@@ -1180,9 +1210,9 @@ public class Dashboard extends JFrame {
 
     private FoodSwapGoal.IntensityLevel parseIntensityLevel(String display) {
         return switch (display) {
-            case "Slightly more" -> FoodSwapGoal.IntensityLevel.SLIGHTLY_MORE;
-            case "Moderately more" -> FoodSwapGoal.IntensityLevel.MODERATELY_MORE;
-            case "Significantly more" -> FoodSwapGoal.IntensityLevel.SIGNIFICANTLY_MORE;
+            case "Slightly more", "Slightly less" -> FoodSwapGoal.IntensityLevel.SLIGHTLY_MORE;
+            case "Moderately more", "Moderately less" -> FoodSwapGoal.IntensityLevel.MODERATELY_MORE;
+            case "Significantly more", "Significantly less" -> FoodSwapGoal.IntensityLevel.SIGNIFICANTLY_MORE;
             default -> null;
         };
     }

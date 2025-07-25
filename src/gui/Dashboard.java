@@ -534,12 +534,12 @@ public class Dashboard extends JFrame {
                         System.out.println("UI: Food details fetched for " + selectedFood.getFoodDescription());
                         System.out.println("UI: Calories=" + selectedFood.getCalories() + ", Protein=" + selectedFood.getProtein());
 
-                        // Apply the conversion factor to the nutrient values
-                        double calories = selectedFood.getNutrientValue("ENERGY (KILOCALORIES)") * quantity * conversionFactor;
-                        double protein = selectedFood.getNutrientValue("PROTEIN") * quantity * conversionFactor;
-                        double carbs = selectedFood.getNutrientValue("CARBOHYDRATE, TOTAL (BY DIFFERENCE)") * quantity * conversionFactor;
-                        double fats = selectedFood.getNutrientValue("FAT (TOTAL LIPIDS)") * quantity * conversionFactor;
-                        double fiber = selectedFood.getNutrientValue("FIBRE, TOTAL DIETARY") * quantity * conversionFactor;
+                        // Apply the conversion factor to the nutrient values from the direct getters
+                        double calories = selectedFood.getCalories() * quantity * conversionFactor;
+                        double protein = selectedFood.getProtein() * quantity * conversionFactor;
+                        double carbs = selectedFood.getCarbs() * quantity * conversionFactor;
+                        double fats = selectedFood.getFats() * quantity * conversionFactor;
+                        double fiber = selectedFood.getFiber() * quantity * conversionFactor;
 
                         models.MealItem mealItem = new models.MealItem(0, 0, selectedFood.getFoodID(), quantity, selectedUnit, calories, protein, carbs, fats, fiber);
 

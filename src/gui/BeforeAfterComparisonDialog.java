@@ -17,18 +17,20 @@ public class BeforeAfterComparisonDialog extends JDialog {
     private SwapApplicationService swapApplicationService;
     private int userId;
     private Date swapDate;
+    private Runnable onTryDifferent;
     private final Color COLOR_PRIMARY = new Color(76, 175, 80);
     private final Color COLOR_SECONDARY = new Color(33, 150, 243);
     private final Font FONT_TITLE = new Font("Arial", Font.BOLD, 18);
     private final Font FONT_SUBTITLE = new Font("Arial", Font.BOLD, 16);
     private final Font FONT_NORMAL = new Font("Arial", Font.PLAIN, 14);
     
-    public BeforeAfterComparisonDialog(JFrame parent, List<FoodSwapRecommendation> swaps, int userId, Date swapDate) {
+    public BeforeAfterComparisonDialog(JFrame parent, List<FoodSwapRecommendation> swaps, int userId, Date swapDate, Runnable onTryDifferent) {
         super(parent, "Before/After Comparison", true);
         this.swaps = swaps;
         this.swapApplicationService = new SwapApplicationService();
         this.userId = userId;
         this.swapDate = swapDate;
+        this.onTryDifferent = onTryDifferent;
         initUI();
     }
     
@@ -95,7 +97,7 @@ public class BeforeAfterComparisonDialog extends JDialog {
         itemsPanel.setLayout(new BoxLayout(itemsPanel, BoxLayout.Y_AXIS));
         itemsPanel.setBackground(Color.WHITE);
         
-        double totalCalories = 0, totalProtein = 0, totalFiber = 0;
+        double totalCalories = 0, totalProtein = 0, totalCarbs = 0, totalFats = 0, totalFiber = 0;
         
         for (FoodSwapRecommendation swap : swaps) {
             JPanel itemPanel = new JPanel(new BorderLayout(5, 5));
@@ -108,19 +110,25 @@ public class BeforeAfterComparisonDialog extends JDialog {
                                         : swap.getRecommendedFood().getCalories();
             double protein = isOriginal ? swap.getOriginalFood().getProtein() 
                                        : swap.getRecommendedFood().getProtein();
+            double carbs = isOriginal ? swap.getOriginalFood().getCarbs()
+                                      : swap.getRecommendedFood().getCarbs();
+            double fats = isOriginal ? swap.getOriginalFood().getFats()
+                                     : swap.getRecommendedFood().getFats();
             double fiber = isOriginal ? swap.getOriginalFood().getFiber() 
                                      : swap.getRecommendedFood().getFiber();
             
             totalCalories += calories;
             totalProtein += protein;
+            totalCarbs += carbs;
+            totalFats += fats;
             totalFiber += fiber;
             
             JLabel nameLabel = new JLabel(String.format("%s: %.0f cal", 
                 truncateText(foodName, 30), calories));
             nameLabel.setFont(FONT_NORMAL);
             
-            JLabel detailLabel = new JLabel(String.format("%.0fg protein, %.0fg fiber", 
-                protein, fiber));
+            JLabel detailLabel = new JLabel(String.format("P: %.0fg, C: %.0fg, F: %.0fg, Fib: %.0fg",
+                protein, carbs, fats, fiber));
             detailLabel.setFont(new Font("Arial", Font.PLAIN, 12));
             detailLabel.setForeground(Color.GRAY);
             
@@ -143,6 +151,8 @@ public class BeforeAfterComparisonDialog extends JDialog {
         
         totalsPanel.add(new JLabel(String.format("Calories: %.0f", totalCalories)));
         totalsPanel.add(new JLabel(String.format("Protein: %.0fg", totalProtein)));
+        totalsPanel.add(new JLabel(String.format("Carbs: %.0fg", totalCarbs)));
+        totalsPanel.add(new JLabel(String.format("Fats: %.0fg", totalFats)));
         totalsPanel.add(new JLabel(String.format("Fiber: %.0fg", totalFiber)));
         
         panel.add(totalsPanel, BorderLayout.SOUTH);
@@ -184,28 +194,38 @@ public class BeforeAfterComparisonDialog extends JDialog {
     }
     
     private Object[][] calculateNutrientChanges() {
-        double originalCals = 0, originalProtein = 0, originalFiber = 0;
-        double modifiedCals = 0, modifiedProtein = 0, modifiedFiber = 0;
-        
+        double originalCals = 0, originalProtein = 0, originalCarbs = 0, originalFats = 0, originalFiber = 0;
+        double modifiedCals = 0, modifiedProtein = 0, modifiedCarbs = 0, modifiedFats = 0, modifiedFiber = 0;
+
         for (FoodSwapRecommendation swap : swaps) {
             originalCals += swap.getOriginalFood().getCalories();
             originalProtein += swap.getOriginalFood().getProtein();
+            originalCarbs += swap.getOriginalFood().getCarbs();
+            originalFats += swap.getOriginalFood().getFats();
             originalFiber += swap.getOriginalFood().getFiber();
-            
+
             modifiedCals += swap.getRecommendedFood().getCalories();
             modifiedProtein += swap.getRecommendedFood().getProtein();
+            modifiedCarbs += swap.getRecommendedFood().getCarbs();
+            modifiedFats += swap.getRecommendedFood().getFats();
             modifiedFiber += swap.getRecommendedFood().getFiber();
         }
-        
+
         return new Object[][] {
-            {"Calories", String.format("%.0f", originalCals), 
-             String.format("%.0f", modifiedCals), 
+            {"Calories", String.format("%.0f", originalCals),
+             String.format("%.0f", modifiedCals),
              formatChange(modifiedCals - originalCals, false)},
-            {"Protein", String.format("%.1fg", originalProtein), 
-             String.format("%.1fg", modifiedProtein), 
+            {"Protein", String.format("%.1fg", originalProtein),
+             String.format("%.1fg", modifiedProtein),
              formatChange(modifiedProtein - originalProtein, true)},
-            {"Fiber", String.format("%.1fg", originalFiber), 
-             String.format("%.1fg", modifiedFiber), 
+            {"Carbs", String.format("%.1fg", originalCarbs),
+             String.format("%.1fg", modifiedCarbs),
+             formatChange(modifiedCarbs - originalCarbs, true)},
+            {"Fats", String.format("%.1fg", originalFats),
+             String.format("%.1fg", modifiedFats),
+             formatChange(modifiedFats - originalFats, true)},
+            {"Fiber", String.format("%.1fg", originalFiber),
+             String.format("%.1fg", modifiedFiber),
              formatChange(modifiedFiber - originalFiber, true)}
         };
     }
@@ -379,6 +399,10 @@ public class BeforeAfterComparisonDialog extends JDialog {
     }
     
     private void tryDifferentSwaps(ActionEvent e) {
+        // Execute the callback provided by the Dashboard
+        if (onTryDifferent != null) {
+            onTryDifferent.run();
+        }
         dispose(); // Close this dialog and return to main swap interface
     }
 } 

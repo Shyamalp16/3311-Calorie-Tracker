@@ -25,6 +25,7 @@ import java.util.Random;
 import java.util.ArrayList;
 import java.sql.Timestamp;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Map;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
@@ -848,7 +849,9 @@ public class Dashboard extends JFrame {
             }
             for (Map.Entry<java.time.LocalDate, List<Double>> entry : weeklyData.entrySet()) {
                 double weeklyTotal = entry.getValue().stream().mapToDouble(Double::doubleValue).sum();
-                double weeklyAverage = weeklyTotal / 7.0; // Average over 7 days in the week
+                int daysInWeek = entry.getValue().size();
+                // Correctly average over the number of days present in that week for the period
+                double weeklyAverage = (daysInWeek > 0) ? weeklyTotal / daysInWeek : 0.0;
                 calorieTrendData.put(entry.getKey().format(formatter), weeklyAverage);
             }
         }
@@ -1165,6 +1168,10 @@ public class Dashboard extends JFrame {
     }
 
     private void findSwapsAction(ActionEvent e) {
+        findAndDisplaySwaps(false); // false means it's a new search, not a "try different"
+    }
+
+    private void findAndDisplaySwaps(boolean findDifferent) {
         Date date;
         try {
             date = new SimpleDateFormat("yyyy-MM-dd").parse(swapDateField.getText());
@@ -1192,14 +1199,21 @@ public class Dashboard extends JFrame {
                 "No Goals Selected", JOptionPane.WARNING_MESSAGE);
             return;
         }
-
-        // Debug the swap engine if needed
-        if (System.getProperty("debug.swaps") != null) {
-            logic.FoodSwapEngineDebugger.debugSwapEngine(mealItems, goals);
+        
+        // Find swaps, excluding current ones if requested
+        List<FoodSwapRecommendation> exclusions = findDifferent ? currentSwaps : Collections.emptyList();
+        List<FoodSwapRecommendation> newSwaps = swapEngine.findFoodSwaps(mealItems, goals, exclusions);
+        
+        if (newSwaps.isEmpty()) {
+            if (findDifferent) {
+                JOptionPane.showMessageDialog(this, "No alternative swaps could be found.", "No More Swaps", JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(this, "No suitable swaps found for the selected goals.", "No Swaps Found", JOptionPane.INFORMATION_MESSAGE);
+            }
+            return;
         }
         
-        // Find swaps
-        currentSwaps = swapEngine.findFoodSwaps(mealItems, goals);
+        currentSwaps = newSwaps;
         
         // Display results
         displaySwapResults();
@@ -1352,9 +1366,11 @@ public class Dashboard extends JFrame {
         panel.add(swapLabel, BorderLayout.NORTH);
 
         // Nutritional impact
-        String impactText = String.format("%s cal, %s protein, %s fiber", 
+        String impactText = String.format("Cal: %s, Prot: %s, Carb: %s, Fat: %s, Fib: %s",
             swap.getCalorieChangeDisplay(),
             swap.getProteinChangeDisplay(),
+            swap.getCarbsChangeDisplay(),
+            swap.getFatsChangeDisplay(),
             swap.getFiberChangeDisplay());
         
         JLabel impactLabel = new JLabel(impactText);
@@ -1574,8 +1590,15 @@ public class Dashboard extends JFrame {
             JOptionPane.showMessageDialog(this, "Invalid date format. Please use YYYY-MM-DD.", "Input Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
-        // Create and show the before/after comparison dialog
-        BeforeAfterComparisonDialog dialog = new BeforeAfterComparisonDialog(this, currentSwaps, currentUser.getUserId(), swapDate);
+        // Create and show the before/after comparison dialog, passing a callback
+        // to the "try different" functionality.
+        BeforeAfterComparisonDialog dialog = new BeforeAfterComparisonDialog(
+            this, 
+            currentSwaps, 
+            currentUser.getUserId(), 
+            swapDate,
+            () -> findAndDisplaySwaps(true) // This is the callback
+        );
         dialog.setVisible(true);
     }
     

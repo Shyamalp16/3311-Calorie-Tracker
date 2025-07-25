@@ -16,8 +16,19 @@ public class FoodSwapEngine {
     
     public List<FoodSwapRecommendation> findFoodSwaps(List<MealItem> mealItems, 
                                                      List<FoodSwapGoal> goals) {
+        return findFoodSwaps(mealItems, goals, Collections.emptyList());
+    }
+
+    public List<FoodSwapRecommendation> findFoodSwaps(List<MealItem> mealItems, 
+                                                     List<FoodSwapGoal> goals,
+                                                     List<FoodSwapRecommendation> exclusions) {
         List<FoodSwapRecommendation> recommendations = new ArrayList<>();
         
+        // Create a set of excluded food IDs for quick lookup
+        Set<Integer> excludedRecIds = exclusions.stream()
+            .map(rec -> rec.getRecommendedFood().getFoodID())
+            .collect(Collectors.toSet());
+
         // Limit to max 2 swaps per meal as per requirements
         int maxSwaps = Math.min(2, mealItems.size());
         int swapsFound = 0;
@@ -35,10 +46,13 @@ public class FoodSwapEngine {
             
             FoodSwapRecommendation bestSwap = findBestSwapForFood(originalFood, goals, 
                                                                  mealItem.getQuantity(), 
-                                                                 mealItem.getUnit());
+                                                                 mealItem.getUnit(),
+                                                                 excludedRecIds);
             
             if (bestSwap != null) {
                 recommendations.add(bestSwap);
+                // Add the new recommendation to the exclusion set so it's not picked again for another slot
+                excludedRecIds.add(bestSwap.getRecommendedFood().getFoodID());
                 swapsFound++;
             }
         }
@@ -49,7 +63,8 @@ public class FoodSwapEngine {
     private FoodSwapRecommendation findBestSwapForFood(Food originalFood, 
                                                       List<FoodSwapGoal> goals,
                                                       double quantity, 
-                                                      String unit) {
+                                                      String unit,
+                                                      Set<Integer> excludedRecIds) {
         
         // First try to find alternatives from the same food group
         List<Food> candidates = foodDAO.findSimilarFoodsByGroup(originalFood.getFoodID(), 50);
@@ -71,6 +86,11 @@ public class FoodSwapEngine {
         String bestReason = "";
         
         for (Food candidate : candidates) {
+            // Skip if this candidate is in the exclusion list
+            if (excludedRecIds.contains(candidate.getFoodID())) {
+                continue;
+            }
+
             SwapScore score = evaluateSwap(originalFood, candidate, goals);
             System.out.println("Evaluating candidate: " + candidate.getFoodDescription() + 
                              " Score: " + score.totalScore + " Meets goals: " + score.meetsGoals);

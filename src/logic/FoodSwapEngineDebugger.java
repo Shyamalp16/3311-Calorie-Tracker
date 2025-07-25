@@ -16,7 +16,7 @@ public class FoodSwapEngineDebugger {
         for (MealItem item : mealItems) {
             System.out.println("\nMeal Item: Food ID " + item.getFoodId() + ", Quantity: " + item.getQuantity());
             
-            Food food = foodDAO.getFoodById(item.getFoodId());
+            Food food = foodDAO.getFoodById(item.getFoodId()).orElse(null);
             if (food != null) {
                 System.out.println("Food: " + food.getFoodDescription());
                 System.out.println("Nutrients - Cal: " + food.getCalories() + ", Protein: " + food.getProtein() + 
@@ -70,7 +70,7 @@ public class FoodSwapEngineDebugger {
         } else if (nutrientType.contains("calories")) {
             candidates.addAll(foodDAO.findFoodsByNutrientRange("calories", searchMin, searchMax, 30));
         } else if (nutrientType.contains("protein")) {
-            candidates.addAll(foodDAO.findFoodsByNutrientRange("protein", searchMin, searchMax, 30));
+                        candidates.addAll(foodDAO.findFoodsByNutrientRange("protein", searchMin, searchMax, 30));
         } else if (nutrientType.contains("fat")) {
             candidates.addAll(foodDAO.findFoodsByNutrientRange("fats", searchMin, searchMax, 30));
         } else if (nutrientType.contains("carb")) {
@@ -110,4 +110,4 @@ public class FoodSwapEngineDebugger {
         
         return originalValue;
     }
-} 
+}

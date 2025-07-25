@@ -1,7 +1,6 @@
 package gui;
 
 import models.User;
-import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.plot.PiePlot;
@@ -39,6 +38,8 @@ import models.FoodSwapGoal;
 import models.FoodSwapRecommendation;
 import gui.MealDetailsDialog;
 import gui.NutrientGoalsDialog;
+import static gui.ChartFactory.ChartType;
+import static models.FoodSwapGoal.IntensityLevel;
 
 
 public class Dashboard extends JFrame {
@@ -311,7 +312,7 @@ public class Dashboard extends JFrame {
             dataset.setValue("Fat 0g", 1);
         }
 
-        JFreeChart pieChart = ChartFactory.createPieChart(
+        JFreeChart pieChart = org.jfree.chart.ChartFactory.createPieChart(
                 null, dataset, false, true, false);
 
         pieChart.setBackgroundPaint(Color.WHITE);
@@ -405,24 +406,67 @@ public class Dashboard extends JFrame {
         addFoodPanel.setBackground(Color.WHITE);
         addFoodPanel.add(new JLabel("Add Food:"));
         searchFoodField = new JTextField("Search food items...", 20);
-        searchFoodField.addKeyListener(new KeyAdapter() {
-            @Override
-            public void keyReleased(KeyEvent e) {
-                String searchTerm = searchFoodField.getText().trim();
-                if (searchTerm.length() > 2) { // Only search if at least 3 characters are typed
-                    currentSearchResults = foodDAO.searchFoodByName(searchTerm);
-                    DefaultListModel<String> listModel = new DefaultListModel<>();
-                    for (models.Food food : currentSearchResults) {
-                        listModel.addElement(food.getFoodDescription());
+        // Use a DocumentListener for text changes, which is more robust than a KeyListener.
+        searchFoodField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            public void changedUpdate(javax.swing.event.DocumentEvent e) { update(); }
+            public void removeUpdate(javax.swing.event.DocumentEvent e) { update(); }
+            public void insertUpdate(javax.swing.event.DocumentEvent e) { update(); }
+
+            public void update() {
+                // Use invokeLater to ensure UI updates are safe from the listener thread.
+                SwingUtilities.invokeLater(() -> {
+                    String searchTerm = searchFoodField.getText().trim();
+
+                    // If the user selected an item, the text is set, and we should not show the popup again.
+                    if (currentSearchResults.stream().anyMatch(f -> f.getFoodDescription().equals(searchTerm))) {
+                        if (searchResultsPopup.isVisible()) {
+                            searchResultsPopup.setVisible(false);
+                        }
+                        return;
                     }
-                    searchResultsList.setModel(listModel);
-                    if (!currentSearchResults.isEmpty()) {
-                        searchResultsPopup.show(searchFoodField, 0, searchFoodField.getHeight());
+
+                    if (searchTerm.length() > 2) {
+                        currentSearchResults = foodDAO.searchFoodByName(searchTerm);
+                        DefaultListModel<String> listModel = new DefaultListModel<>();
+                        for (models.Food food : currentSearchResults) {
+                            listModel.addElement(food.getFoodDescription());
+                        }
+                        searchResultsList.setModel(listModel);
+
+                        if (!listModel.isEmpty()) {
+                            // Only show the popup if it's not already visible.
+                            // This prevents the focus-stealing issue.
+                            if (!searchResultsPopup.isVisible()) {
+                                searchResultsPopup.show(searchFoodField, 0, searchFoodField.getHeight());
+                            }
+                        } else {
+                            searchResultsPopup.setVisible(false);
+                        }
                     } else {
                         searchResultsPopup.setVisible(false);
                     }
-                } else {
-                    searchResultsPopup.setVisible(false);
+                });
+            }
+        });
+
+        // Use a KeyListener for handling navigation (arrow keys, escape).
+        searchFoodField.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (searchResultsPopup.isVisible()) {
+                    switch (e.getKeyCode()) {
+                        case KeyEvent.VK_DOWN:
+                            // Move focus to the list and select the first item.
+                            searchResultsList.requestFocusInWindow();
+                            searchResultsList.setSelectedIndex(0);
+                            e.consume(); // Prevent the text field from processing the event.
+                            break;
+                        case KeyEvent.VK_ESCAPE:
+                            // Hide the popup.
+                            searchResultsPopup.setVisible(false);
+                            e.consume();
+                            break;
+                    }
                 }
             }
         });
@@ -438,14 +482,16 @@ public class Dashboard extends JFrame {
                     searchResultsPopup.setVisible(false);
 
                     // Fetch and populate measures for the selected food
-                    models.Food selectedFood = currentSearchResults.get(selectedIndex);
-                    Map<String, Integer> measures = foodDAO.getMeasuresForFood(selectedFood.getFoodID());
-                    unitComboBox.removeAllItems();
-                    if (measures.isEmpty()) {
-                        unitComboBox.addItem("g"); // Default to grams if no specific measures
-                    } else {
-                        for (String measureName : measures.keySet()) {
-                            unitComboBox.addItem(measureName);
+                    models.Food selectedFood = foodDAO.getFoodById(currentSearchResults.get(selectedIndex).getFoodID()).orElse(null);
+                    if (selectedFood != null) {
+                        Map<String, Integer> measures = foodDAO.getMeasuresForFood(selectedFood.getFoodID());
+                        unitComboBox.removeAllItems();
+                        if (measures.isEmpty()) {
+                            unitComboBox.addItem("g"); // Default to grams if no specific measures
+                        } else {
+                            for (String measureName : measures.keySet()) {
+                                unitComboBox.addItem(measureName);
+                            }
                         }
                     }
                 }
@@ -467,7 +513,7 @@ public class Dashboard extends JFrame {
                 int selectedIndex = searchResultsList.getSelectedIndex();
                 if (selectedIndex != -1 && currentSearchResults != null && selectedIndex < currentSearchResults.size()) {
                     models.Food selectedFoodSummary = currentSearchResults.get(selectedIndex);
-                    models.Food selectedFood = foodDAO.getFoodDetails(selectedFoodSummary.getFoodID());
+                    models.Food selectedFood = foodDAO.getFoodById(selectedFoodSummary.getFoodID()).orElse(null);
                     int quantity = (int) quantitySpinner.getValue();
                     String selectedUnit = (String) unitComboBox.getSelectedItem();
 
@@ -505,8 +551,6 @@ public class Dashboard extends JFrame {
                     } else {
                         JOptionPane.showMessageDialog(Dashboard.this, "Could not retrieve full details for the selected food.", "Data Error", JOptionPane.ERROR_MESSAGE);
                     }
-                } else {
-                    JOptionPane.showMessageDialog(Dashboard.this, "Please select a food item to add.", "No Food Selected", JOptionPane.WARNING_MESSAGE);
                 }
             }
         });
@@ -520,8 +564,6 @@ public class Dashboard extends JFrame {
                 if (selectedRow != -1) {
                     mealTableModel.removeRow(selectedRow);
                     updateTotalCalories();
-                } else {
-                    JOptionPane.showMessageDialog(Dashboard.this, "Please select a row to remove.", "No Row Selected", JOptionPane.WARNING_MESSAGE);
                 }
             }
         });
@@ -708,13 +750,13 @@ public class Dashboard extends JFrame {
         nutrientData.put("Fiber", totalFiber);
 
         leftColumn.add(new JLabel("Daily Nutrient Breakdown (Calories)"));
-        leftColumn.add(ChartHelper.createPieChart("Nutrient Breakdown", nutrientData));
+        leftColumn.add(ChartFactory.createChart(ChartType.PIE, "Nutrient Breakdown", nutrientData));
 
         // Average Daily Intake
         leftColumn.add(Box.createVerticalStrut(20));
         leftColumn.add(new JLabel("Average Daily Intake"));
 
-        models.Goal userGoals = goalDAO.getGoalByUserId(currentUser.getUserId());
+        models.Goal userGoals = goalDAO.getGoalByUserId(currentUser.getUserId()).orElse(null);
         double recommendedCalories = (userGoals != null) ? userGoals.getCalories() : 2000;
         double recommendedProtein = (userGoals != null) ? userGoals.getProtein() : 75;
         double recommendedFiber = (userGoals != null) ? userGoals.getFiber() : 25;
@@ -742,7 +784,7 @@ public class Dashboard extends JFrame {
             calorieTrendData.put(dateStr, calorieTrendData.getOrDefault(dateStr, 0.0) + meal.getTotalCalories());
         }
         rightColumn.add(new JLabel("Trends Over Time"));
-        rightColumn.add(ChartHelper.createLineChart("Calorie Intake", "Date", "Calories", calorieTrendData));
+        rightColumn.add(ChartFactory.createChart(ChartType.LINE, "Calorie Intake", calorieTrendData));
 
         // Top 5 Nutrients (Bar Chart)
         rightColumn.add(Box.createVerticalStrut(20));
@@ -752,7 +794,7 @@ public class Dashboard extends JFrame {
         topNutrientsData.put("Carbs", totalCarbs);
         topNutrientsData.put("Fats", totalFats);
         topNutrientsData.put("Fiber", totalFiber);
-        rightColumn.add(ChartHelper.createBarChart("Total Nutrient Intake", "Nutrient", "Grams", topNutrientsData));
+        rightColumn.add(ChartFactory.createChart(ChartType.BAR, "Total Nutrient Intake", topNutrientsData));
         
         leftColumn.revalidate();
         leftColumn.repaint();
@@ -818,7 +860,7 @@ public class Dashboard extends JFrame {
         for (models.Meal meal : allMeals) {
             List<models.MealItem> items = mealDAO.getMealItemsByMealId(meal.getMealId());
             for (models.MealItem item : items) {
-                models.Food food = foodDAO.getFoodById(item.getFoodId());
+                models.Food food = foodDAO.getFoodById(item.getFoodId()).orElse(null);
                 if (food != null) {
                     String foodGroup = foodDAO.getFoodGroupById(food.getFoodID());
                     foodGroupCounts.put(foodGroup, foodGroupCounts.getOrDefault(foodGroup, 0) + 1);
@@ -833,14 +875,14 @@ public class Dashboard extends JFrame {
             }
         }
         
-        leftColumn.add(ChartHelper.createPieChart("Your Average Plate", userPlateData), BorderLayout.CENTER);
+        leftColumn.add(ChartFactory.createChart(ChartType.PIE, "Your Average Plate", userPlateData), BorderLayout.CENTER);
 
         // CFG Recommended Plate
         Map<String, Double> cfgPlateData = new java.util.HashMap<>();
         cfgPlateData.put("Vegetables & Fruits", 50.0);
         cfgPlateData.put("Whole Grains", 25.0);
         cfgPlateData.put("Protein Foods", 25.0);
-        rightColumn.add(ChartHelper.createPieChart("CFG Recommended Plate", cfgPlateData), BorderLayout.CENTER);
+        rightColumn.add(ChartFactory.createChart(ChartType.PIE, "CFG Recommended Plate", cfgPlateData), BorderLayout.CENTER);
 
         // Comparison Table
         String[] columnNames = {"Food Group", "Your %", "CFG Recommended"};
@@ -866,7 +908,7 @@ public class Dashboard extends JFrame {
         double proteinDiff = 25.0 - (userPlateData.getOrDefault("Meat and Alternatives", 0.0) + userPlateData.getOrDefault("Dairy and Egg Products", 0.0));
         if (proteinDiff > 5) {
             recommendationsPanel.add(new JLabel("<html><b>⚠️ Increase protein foods</b><br><small>Add " + String.format("%.0f%%", proteinDiff) + " more to reach CFG guidelines</small></html>"));
-        } else if (proteinDiff < -5) {
+        } else if (proteinDiff < -5){
             recommendationsPanel.add(new JLabel("<html><b>⚠️ Reduce protein portions slightly</b><br><small>Currently " + String.format("%.0f%%", -proteinDiff) + " above recommendations</small></html>"));
         } else {
             recommendationsPanel.add(new JLabel("<html><b>✓ Protein intake is good</b></html>"));
@@ -1344,7 +1386,7 @@ public class Dashboard extends JFrame {
                     swapApplicationService.calculateSwapEffects(currentUser.getUserId(), startDate, endDate);
                 
                 String message = String.format(
-                    "Swaps applied successfully to meals from %s to %s!\n\n" +
+                    "Swaps applied successfully to meals from %s to %s\n\n" +
                     "Total effect over this period:\n" +
                     "Calories: %+.0f\n" +
                     "Protein: %+.1fg\n" +

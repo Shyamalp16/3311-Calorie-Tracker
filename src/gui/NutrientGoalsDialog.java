@@ -85,7 +85,7 @@ public class NutrientGoalsDialog extends JDialog {
     }
 
     private void loadExistingGoals() {
-        Goal existingGoal = goalDAO.getGoalByUserId(currentUser.getUserId());
+        Goal existingGoal = goalDAO.getGoalByUserId(currentUser.getUserId()).orElse(null);
         if (existingGoal != null) {
             caloriesField.setText(String.valueOf(existingGoal.getCalories()));
             proteinField.setText(String.valueOf(existingGoal.getProtein()));

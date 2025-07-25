@@ -170,8 +170,8 @@ public class SwapApplicationService {
         
         for (SwapHistory swap : swaps) {
             if (swap.isActive()) {
-                Food originalFood = foodDAO.getFoodById(swap.getOriginalFoodId());
-                Food swappedFood = foodDAO.getFoodById(swap.getSwappedFoodId());
+                Food originalFood = foodDAO.getFoodById(swap.getOriginalFoodId()).orElse(null);
+                Food swappedFood = foodDAO.getFoodById(swap.getSwappedFoodId()).orElse(null);
                 
                 if (originalFood != null && swappedFood != null) {
                     double quantity = swap.getQuantity();
@@ -211,4 +211,4 @@ public class SwapApplicationService {
             this.totalSwaps = totalSwaps;
         }
     }
-} 
+}

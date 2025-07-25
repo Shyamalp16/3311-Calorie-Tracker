@@ -1,4 +1,4 @@
- package logic;
+package logic;
 
 import Database.FoodDAO;
 import models.*;
@@ -30,7 +30,7 @@ public class FoodSwapEngine {
         for (MealItem mealItem : sortedItems) {
             if (swapsFound >= maxSwaps) break;
             
-            Food originalFood = foodDAO.getFoodById(mealItem.getFoodId());
+            Food originalFood = foodDAO.getFoodById(mealItem.getFoodId()).orElse(null);
             if (originalFood == null) continue;
             
             FoodSwapRecommendation bestSwap = findBestSwapForFood(originalFood, goals, 

@@ -124,8 +124,8 @@ public class SwapHistoryDialog extends JDialog {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm");
         
         for (SwapHistory swap : swapHistories) {
-            Food originalFood = foodDAO.getFoodById(swap.getOriginalFoodId());
-            Food swappedFood = foodDAO.getFoodById(swap.getSwappedFoodId());
+            Food originalFood = foodDAO.getFoodById(swap.getOriginalFoodId()).orElse(null);
+            Food swappedFood = foodDAO.getFoodById(swap.getSwappedFoodId()).orElse(null);
             
             String originalName = (originalFood != null) ? originalFood.getFoodDescription() : "Unknown Food";
             String swappedName = (swappedFood != null) ? swappedFood.getFoodDescription() : "Unknown Food";
@@ -219,4 +219,4 @@ public class SwapHistoryDialog extends JDialog {
             }
         }
     }
-} 
+}

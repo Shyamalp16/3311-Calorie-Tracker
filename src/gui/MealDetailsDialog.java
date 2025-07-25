@@ -36,7 +36,7 @@ public class MealDetailsDialog extends JDialog {
 
         FoodDAO foodDAO = new FoodDAO();
         for (MealItem item : mealItems) {
-            Food food = foodDAO.getFoodById(item.getFoodId());
+            Food food = foodDAO.getFoodById(item.getFoodId()).orElse(null);
             String foodName = (food != null) ? food.getFoodDescription() : "Unknown Food";
             tableModel.addRow(new Object[]{
                 foodName,

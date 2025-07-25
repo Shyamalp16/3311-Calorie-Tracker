@@ -205,7 +205,7 @@ public class SplashScreen extends JFrame {
         continueButton.addActionListener(e -> {
             String username = userField.getText();
             String password = new String(passField.getPassword());
-            User user = userDAO.login(username, password);
+            User user = userDAO.login(username, password).orElse(null);
 
             if (user != null) {
                 new Dashboard(user);

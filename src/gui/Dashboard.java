@@ -70,6 +70,7 @@ public class Dashboard extends JFrame {
     private List<FoodSwapRecommendation> currentSwaps;
     private JTextField swapDateField;
     private List<models.MealItem> loggedMealItems;
+    private JTextField dashboardDateField;
 
     // Dashboard panels for refresh
     private JPanel leftColumnPanel;
@@ -154,14 +155,32 @@ public class Dashboard extends JFrame {
         dashboardPanel.setBackground(Color.WHITE);
         dashboardPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
+        // Top panel for title and date controls
+        JPanel topPanel = new JPanel(new BorderLayout());
+        topPanel.setBackground(COLOR_BACKGROUND);
+
         // Screen Title
         JLabel titleLabel = new JLabel("Main Application - Dashboard");
         titleLabel.setFont(FONT_TITLE);
-        titleLabel.setForeground(COLOR_TEXT_DARK); // Changed to dark for better contrast on white background
+        titleLabel.setForeground(COLOR_TEXT_DARK);
         titleLabel.setOpaque(true);
-        titleLabel.setBackground(COLOR_BACKGROUND); // Changed to background color
+        titleLabel.setBackground(COLOR_BACKGROUND);
         titleLabel.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
-        dashboardPanel.add(titleLabel, BorderLayout.NORTH);
+        topPanel.add(titleLabel, BorderLayout.CENTER);
+
+        // Date selection panel
+        JPanel datePanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        datePanel.setBackground(COLOR_BACKGROUND);
+        datePanel.add(new JLabel("View Date:"));
+        dashboardDateField = new JTextField(new SimpleDateFormat("yyyy-MM-dd").format(new Date()), 10);
+        datePanel.add(dashboardDateField);
+        JButton viewDateButton = new JButton("Go");
+        styleButton(viewDateButton);
+        viewDateButton.addActionListener(e -> refreshDashboard());
+        datePanel.add(viewDateButton);
+        topPanel.add(datePanel, BorderLayout.EAST);
+
+        dashboardPanel.add(topPanel, BorderLayout.NORTH);
 
         // Main content with two columns
         JPanel contentPanel = new JPanel(new GridLayout(1, 2, 20, 20));
@@ -315,7 +334,7 @@ public class Dashboard extends JFrame {
         }
 
         JFreeChart pieChart = org.jfree.chart.ChartFactory.createPieChart(
-                null, dataset, false, true, false);
+                null, dataset, true, true, false);
 
         pieChart.setBackgroundPaint(Color.WHITE);
         PiePlot plot = (PiePlot) pieChart.getPlot();
@@ -1424,8 +1443,15 @@ public class Dashboard extends JFrame {
     }
     
     public void refreshDashboard() {
-        List<models.Meal> todaysMeals = mealDAO.getMealsForUserAndDate(currentUser.getUserId(), new java.sql.Date(new Date().getTime()));
-        updateDashboardPanels(todaysMeals);
+        Date selectedDate;
+        try {
+            selectedDate = new SimpleDateFormat("yyyy-MM-dd").parse(dashboardDateField.getText());
+        } catch (ParseException ex) {
+            JOptionPane.showMessageDialog(this, "Invalid date format. Please use YYYY-MM-DD.", "Input Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        List<models.Meal> mealsForDate = mealDAO.getMealsForUserAndDate(currentUser.getUserId(), new java.sql.Date(selectedDate.getTime()));
+        updateDashboardPanels(mealsForDate);
     }
 
     private void updateDashboardPanels(List<models.Meal> todaysMeals) {

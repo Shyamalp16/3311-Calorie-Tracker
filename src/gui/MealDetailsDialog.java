@@ -30,7 +30,7 @@ public class MealDetailsDialog extends JDialog {
         titleLabel.setFont(new Font("Arial", Font.BOLD, 18));
         add(titleLabel, BorderLayout.NORTH);
 
-        String[] columnNames = {"Food", "Quantity", "Unit", "Calories", "Protein", "Carbs", "Fat", "Fiber"};
+        String[] columnNames = {"Food", "Quantity", "Unit", "Calories", "Protein", "Carbs", "Fat", "Fiber", "Vitamin A", "Vitamin B", "Vitamin C", "Vitamin D"};
         DefaultTableModel tableModel = new DefaultTableModel(columnNames, 0);
         JTable table = new JTable(tableModel);
 
@@ -46,7 +46,11 @@ public class MealDetailsDialog extends JDialog {
                 item.getProtein(),
                 item.getCarbs(),
                 item.getFats(),
-                item.getFiber()
+                item.getFiber(),
+                item.getVitaminA(),
+                item.getVitaminB(),
+                item.getVitaminC(),
+                item.getVitaminD()
             });
         }
 

@@ -213,6 +213,15 @@ public class Dashboard extends JFrame {
         double dailyTotalCarbs = 0;
         double dailyTotalFats = 0;
         double dailyTotalFiber = 0;
+        double dailyTotalSodium = 0;
+        double dailyTotalSugars = 0;
+        double dailyTotalSaturatedFats = 0;
+        double dailyTotalIron = 0;
+        double dailyTotalCalcium = 0;
+        double dailyTotalVitaminA = 0;
+        double dailyTotalVitaminB = 0;
+        double dailyTotalVitaminC = 0;
+        double dailyTotalVitaminD = 0;
 
         for (models.Meal meal : todaysMeals) {
             dailyTotalCalories += meal.getTotalCalories();
@@ -220,6 +229,15 @@ public class Dashboard extends JFrame {
             dailyTotalCarbs += meal.getTotalCarbs();
             dailyTotalFats += meal.getTotalFats();
             dailyTotalFiber += meal.getTotalFiber();
+            dailyTotalSodium += meal.getTotalSodium();
+            dailyTotalSugars += meal.getTotalSugars();
+            dailyTotalSaturatedFats += meal.getTotalSaturatedFats();
+            dailyTotalIron += meal.getTotalIron();
+            dailyTotalCalcium += meal.getTotalCalcium();
+            dailyTotalVitaminA += meal.getTotalVitaminA();
+            dailyTotalVitaminB += meal.getTotalVitaminB();
+            dailyTotalVitaminC += meal.getTotalVitaminC();
+            dailyTotalVitaminD += meal.getTotalVitaminD();
         }
 
         summaryPanel.add(new JLabel("Total Calories:"));
@@ -232,6 +250,14 @@ public class Dashboard extends JFrame {
         summaryPanel.add(new JLabel(String.format("%.0fg", dailyTotalFats)));
         summaryPanel.add(new JLabel("Fiber:"));
         summaryPanel.add(new JLabel(String.format("%.0fg", dailyTotalFiber)));
+        summaryPanel.add(new JLabel("Vitamin A:"));
+        summaryPanel.add(new JLabel(String.format("%.0fµg", dailyTotalVitaminA)));
+        summaryPanel.add(new JLabel("Vitamin B:"));
+        summaryPanel.add(new JLabel(String.format("%.0fmg", dailyTotalVitaminB)));
+        summaryPanel.add(new JLabel("Vitamin C:"));
+        summaryPanel.add(new JLabel(String.format("%.0fmg", dailyTotalVitaminC)));
+        summaryPanel.add(new JLabel("Vitamin D:"));
+        summaryPanel.add(new JLabel(String.format("%.0fµg", dailyTotalVitaminD)));
         leftPanel.add(summaryPanel);
 
         leftPanel.add(Box.createRigidArea(new Dimension(0, 20)));
@@ -312,56 +338,49 @@ public class Dashboard extends JFrame {
 
     private ChartPanel createPieChartPlaceholder(List<models.Meal> todaysMeals) {
         // Fetch today's meals to get dynamic data for the chart
-
+        Map<String, Double> nutrientData = new java.util.HashMap<>();
+        double dailyTotalCalories = 0;
         double dailyTotalProtein = 0;
         double dailyTotalCarbs = 0;
         double dailyTotalFats = 0;
+        double dailyTotalFiber = 0;
+        double dailyTotalSodium = 0;
+        double dailyTotalSugars = 0;
+        double dailyTotalSaturatedFats = 0;
+        double dailyTotalIron = 0;
+        double dailyTotalCalcium = 0;
+        double dailyTotalVitaminA = 0;
+        double dailyTotalVitaminB = 0;
+        double dailyTotalVitaminC = 0;
+        double dailyTotalVitaminD = 0;
 
         for (models.Meal meal : todaysMeals) {
+            dailyTotalCalories += meal.getTotalCalories();
             dailyTotalProtein += meal.getTotalProtein();
             dailyTotalCarbs += meal.getTotalCarbs();
             dailyTotalFats += meal.getTotalFats();
+            dailyTotalFiber += meal.getTotalFiber();
+            dailyTotalSodium += meal.getTotalSodium();
+            dailyTotalSugars += meal.getTotalSugars();
+            dailyTotalSaturatedFats += meal.getTotalSaturatedFats();
+            dailyTotalIron += meal.getTotalIron();
+            dailyTotalCalcium += meal.getTotalCalcium();
+            dailyTotalVitaminA += meal.getTotalVitaminA();
+            dailyTotalVitaminB += meal.getTotalVitaminB();
+            dailyTotalVitaminC += meal.getTotalVitaminC();
+            dailyTotalVitaminD += meal.getTotalVitaminD();
         }
 
-        DefaultPieDataset dataset = new DefaultPieDataset();
-        if (dailyTotalProtein > 0 || dailyTotalCarbs > 0 || dailyTotalFats > 0) {
-            dataset.setValue(String.format("Protein %.0fg", dailyTotalProtein), dailyTotalProtein);
-            dataset.setValue(String.format("Carbs %.0fg", dailyTotalCarbs), dailyTotalCarbs);
-            dataset.setValue(String.format("Fat %.0fg", dailyTotalFats), dailyTotalFats);
-        } else {
-            // Default values if no data is available
-            dataset.setValue("Protein 0g", 1);
-            dataset.setValue("Carbs 0g", 1);
-            dataset.setValue("Fat 0g", 1);
-        }
+        nutrientData.put("Protein", dailyTotalProtein);
+        nutrientData.put("Carbohydrates", dailyTotalCarbs);
+        nutrientData.put("Fats", dailyTotalFats);
+        nutrientData.put("Fiber", dailyTotalFiber);
+        nutrientData.put("Vitamin A", dailyTotalVitaminA);
+        nutrientData.put("Vitamin B", dailyTotalVitaminB);
+        nutrientData.put("Vitamin C", dailyTotalVitaminC);
+        nutrientData.put("Vitamin D", dailyTotalVitaminD);
 
-        JFreeChart pieChart = org.jfree.chart.ChartFactory.createPieChart(
-                null, dataset, true, true, false);
-
-        pieChart.setBackgroundPaint(Color.WHITE);
-        PiePlot plot = (PiePlot) pieChart.getPlot();
-        plot.setBackgroundPaint(Color.WHITE);
-        plot.setOutlinePaint(null);
-        plot.setLabelGenerator(null);
-
-        // Set colors dynamically based on dataset keys
-        if (dataset.getItemCount() > 0) {
-            int i = 0;
-            for (Object key : dataset.getKeys()) {
-                if (key.toString().startsWith("Protein")) {
-                    plot.setSectionPaint(key.toString(), new Color(255, 105, 97)); // Red
-                } else if (key.toString().startsWith("Carbs")) {
-                    plot.setSectionPaint(key.toString(), new Color(97, 168, 255));  // Blue
-                } else if (key.toString().startsWith("Fat")) {
-                    plot.setSectionPaint(key.toString(), new Color(255, 214, 97));   // Yellow
-                }
-                i++;
-            }
-        }
-
-        ChartPanel chartPanel = new ChartPanel(pieChart);
-        chartPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
-        return chartPanel;
+        return ChartFactory.createChart(ChartType.PIE, "Daily Nutrition", nutrientData);
     }
 
     private JPanel createChartPlaceholder(String text) {
@@ -590,8 +609,17 @@ public class Dashboard extends JFrame {
                         double carbs = selectedFood.getCarbs() * quantity * conversionFactor;
                         double fats = selectedFood.getFats() * quantity * conversionFactor;
                         double fiber = selectedFood.getFiber() * quantity * conversionFactor;
+                        double sodium = selectedFood.getSodium() * quantity * conversionFactor;
+                        double sugars = selectedFood.getSugars() * quantity * conversionFactor;
+                        double saturatedFats = selectedFood.getSaturatedFats() * quantity * conversionFactor;
+                        double iron = selectedFood.getIron() * quantity * conversionFactor;
+                        double calcium = selectedFood.getCalcium() * quantity * conversionFactor;
+                        double vitaminA = selectedFood.getVitaminA() * quantity * conversionFactor;
+                        double vitaminB = selectedFood.getVitaminB() * quantity * conversionFactor;
+                        double vitaminC = selectedFood.getVitaminC() * quantity * conversionFactor;
+                        double vitaminD = selectedFood.getVitaminD() * quantity * conversionFactor;
 
-                        models.MealItem mealItem = new models.MealItem(0, 0, selectedFood.getFoodID(), quantity, selectedUnit, calories, protein, carbs, fats, fiber);
+                        models.MealItem mealItem = new models.MealItem(0, 0, selectedFood.getFoodID(), quantity, selectedUnit, calories, protein, carbs, fats, fiber, sodium, sugars, saturatedFats, iron, calcium, vitaminA, vitaminB, vitaminC, vitaminD);
                         loggedMealItems.add(mealItem); // Add to our backing list
 
                         mealTableModel.addRow(new Object[]{selectedFood.getFoodDescription(), quantity, selectedUnit, calories}); // Add only visible data
@@ -656,9 +684,18 @@ public class Dashboard extends JFrame {
                     double totalCarbs = mealItems.stream().mapToDouble(models.MealItem::getCarbs).sum();
                     double totalFats = mealItems.stream().mapToDouble(models.MealItem::getFats).sum();
                     double totalFiber = mealItems.stream().mapToDouble(models.MealItem::getFiber).sum();
+                    double totalSodium = mealItems.stream().mapToDouble(models.MealItem::getSodium).sum();
+                    double totalSugars = mealItems.stream().mapToDouble(models.MealItem::getSugars).sum();
+                    double totalSaturatedFats = mealItems.stream().mapToDouble(models.MealItem::getSaturatedFats).sum();
+                    double totalIron = mealItems.stream().mapToDouble(models.MealItem::getIron).sum();
+                    double totalCalcium = mealItems.stream().mapToDouble(models.MealItem::getCalcium).sum();
+                    double totalVitaminA = mealItems.stream().mapToDouble(models.MealItem::getVitaminA).sum();
+                    double totalVitaminB = mealItems.stream().mapToDouble(models.MealItem::getVitaminB).sum();
+                    double totalVitaminC = mealItems.stream().mapToDouble(models.MealItem::getVitaminC).sum();
+                    double totalVitaminD = mealItems.stream().mapToDouble(models.MealItem::getVitaminD).sum();
 
                     // Create and save the meal
-                    models.Meal meal = new models.Meal(0, currentUser.getUserId(), mealType, mealDate, new Timestamp(System.currentTimeMillis()), totalCalories, totalProtein, totalCarbs, totalFats, totalFiber);
+                    models.Meal meal = new models.Meal(0, currentUser.getUserId(), mealType, mealDate, new Timestamp(System.currentTimeMillis()), totalCalories, totalProtein, totalCarbs, totalFats, totalFiber, totalSodium, totalSugars, totalSaturatedFats, totalIron, totalCalcium, totalVitaminA, totalVitaminB, totalVitaminC, totalVitaminD);
                     int mealId = mealDAO.saveMeal(meal);
 
                     if (mealId != -1) {
@@ -790,6 +827,7 @@ public class Dashboard extends JFrame {
         Date startDate = cal.getTime();
 
         List<models.Meal> meals = mealDAO.getMealsInDateRange(currentUser.getUserId(), startDate, endDate);
+        System.out.println("DEBUG: Meals for date range (" + timePeriod + "): " + meals.size() + " meals");
 
         // --- Left Column: Pie Chart and Averages ---
         double totalCalories = meals.stream().mapToDouble(models.Meal::getTotalCalories).sum();
@@ -797,12 +835,23 @@ public class Dashboard extends JFrame {
         double totalCarbs = meals.stream().mapToDouble(models.Meal::getTotalCarbs).sum();
         double totalFats = meals.stream().mapToDouble(models.Meal::getTotalFats).sum();
         double totalFiber = meals.stream().mapToDouble(models.Meal::getTotalFiber).sum();
+        double totalSodium = meals.stream().mapToDouble(models.Meal::getTotalSodium).sum();
+        double totalSugars = meals.stream().mapToDouble(models.Meal::getTotalSugars).sum();
+        double totalSaturatedFats = meals.stream().mapToDouble(models.Meal::getTotalSaturatedFats).sum();
+        double totalIron = meals.stream().mapToDouble(models.Meal::getTotalIron).sum();
+        double totalCalcium = meals.stream().mapToDouble(models.Meal::getTotalCalcium).sum();
+        double totalVitaminA = meals.stream().mapToDouble(models.Meal::getTotalVitaminA).sum();
+        double totalVitaminB = meals.stream().mapToDouble(models.Meal::getTotalVitaminB).sum();
+        double totalVitaminC = meals.stream().mapToDouble(models.Meal::getTotalVitaminC).sum();
+        double totalVitaminD = meals.stream().mapToDouble(models.Meal::getTotalVitaminD).sum();
 
         // Daily Nutrient Breakdown (Pie Chart)
         Map<String, Double> nutrientData = new java.util.HashMap<>();
-        nutrientData.put("Protein", totalProtein * 4); // 4 calories per gram
-        nutrientData.put("Carbs", totalCarbs * 4); // 4 calories per gram
-        nutrientData.put("Fats", totalFats * 9); // 9 calories per gram
+        nutrientData.put("Protein", totalProtein);
+        nutrientData.put("Carbohydrates", totalCarbs);
+        nutrientData.put("Fats", totalFats);
+        nutrientData.put("Fiber", totalFiber);
+        nutrientData.put("Vitamins", totalVitaminA + totalVitaminB + totalVitaminC + totalVitaminD);
         leftColumn.add(new JLabel("Nutrient Breakdown (Calories)"));
         leftColumn.add(ChartFactory.createChart(ChartType.PIE, "Nutrient Breakdown", nutrientData));
 
@@ -828,6 +877,7 @@ public class Dashboard extends JFrame {
             java.time.LocalDate mealDate = new java.sql.Date(meal.getMealDate().getTime()).toLocalDate();
             dailyTotals.put(mealDate, dailyTotals.getOrDefault(mealDate, 0.0) + meal.getTotalCalories());
         }
+        System.out.println("DEBUG: Daily Totals: " + dailyTotals);
 
         // Then, create the trend data with formatted labels based on the selected time period
         Map<String, Double> calorieTrendData = new java.util.LinkedHashMap<>();
@@ -855,6 +905,7 @@ public class Dashboard extends JFrame {
                 calorieTrendData.put(entry.getKey().format(formatter), weeklyAverage);
             }
         }
+        System.out.println("DEBUG: Calorie Trend Data: " + calorieTrendData);
         
         rightColumn.add(new JLabel("Trends Over Time"));
         rightColumn.add(ChartFactory.createChart(ChartType.LINE, "Calorie Intake", calorieTrendData));
@@ -863,10 +914,12 @@ public class Dashboard extends JFrame {
         rightColumn.add(Box.createVerticalStrut(20));
         rightColumn.add(new JLabel("Total Nutrient Intake (grams)"));
         Map<String, Double> topNutrientsData = new java.util.HashMap<>();
+        
         topNutrientsData.put("Protein", totalProtein);
-        topNutrientsData.put("Carbs", totalCarbs);
+        topNutrientsData.put("Carbohydrates", totalCarbs);
         topNutrientsData.put("Fats", totalFats);
         topNutrientsData.put("Fiber", totalFiber);
+        topNutrientsData.put("Vitamins", totalVitaminA + totalVitaminB + totalVitaminC + totalVitaminD);
         rightColumn.add(ChartFactory.createChart(ChartType.BAR, "Total Nutrient Intake", topNutrientsData));
         
         leftColumn.revalidate();
@@ -1366,12 +1419,16 @@ public class Dashboard extends JFrame {
         panel.add(swapLabel, BorderLayout.NORTH);
 
         // Nutritional impact
-        String impactText = String.format("Cal: %s, Prot: %s, Carb: %s, Fat: %s, Fib: %s",
+        String impactText = String.format("Cal: %s, Prot: %s, Carb: %s, Fat: %s, Fib: %s, VitA: %s, VitB: %s, VitC: %s, VitD: %s",
             swap.getCalorieChangeDisplay(),
             swap.getProteinChangeDisplay(),
             swap.getCarbsChangeDisplay(),
             swap.getFatsChangeDisplay(),
-            swap.getFiberChangeDisplay());
+            swap.getFiberChangeDisplay(),
+            swap.getVitaminAChangeDisplay(),
+            swap.getVitaminBChangeDisplay(),
+            swap.getVitaminCChangeDisplay(),
+            swap.getVitaminDChangeDisplay());
         
         JLabel impactLabel = new JLabel(impactText);
         impactLabel.setFont(new Font("Arial", Font.ITALIC, 12));

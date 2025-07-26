@@ -11,6 +11,10 @@ public class FoodSwapRecommendation {
     private double carbsChange;
     private double fatsChange;
     private double fiberChange;
+    private double vitaminAChange;
+    private double vitaminBChange;
+    private double vitaminCChange;
+    private double vitaminDChange;
 
     public FoodSwapRecommendation(Food originalFood, Food recommendedFood, double quantity, String unit, String swapReason) {
         this.originalFood = originalFood;
@@ -25,6 +29,10 @@ public class FoodSwapRecommendation {
         this.carbsChange = recommendedFood.getCarbs() - originalFood.getCarbs();
         this.fatsChange = recommendedFood.getFats() - originalFood.getFats();
         this.fiberChange = recommendedFood.getFiber() - originalFood.getFiber();
+        this.vitaminAChange = recommendedFood.getVitaminA() - originalFood.getVitaminA();
+        this.vitaminBChange = recommendedFood.getVitaminB() - originalFood.getVitaminB();
+        this.vitaminCChange = recommendedFood.getVitaminC() - originalFood.getVitaminC();
+        this.vitaminDChange = recommendedFood.getVitaminD() - originalFood.getVitaminD();
     }
 
     // Getters
@@ -38,6 +46,10 @@ public class FoodSwapRecommendation {
     public double getCarbsChange() { return carbsChange; }
     public double getFatsChange() { return fatsChange; }
     public double getFiberChange() { return fiberChange; }
+    public double getVitaminAChange() { return vitaminAChange; }
+    public double getVitaminBChange() { return vitaminBChange; }
+    public double getVitaminCChange() { return vitaminCChange; }
+    public double getVitaminDChange() { return vitaminDChange; }
 
     // Utility methods for displaying changes
     public String getCalorieChangeDisplay() {
@@ -60,6 +72,22 @@ public class FoodSwapRecommendation {
         return String.format("%+.1fg", fiberChange);
     }
 
+    public String getVitaminAChangeDisplay() {
+        return String.format("%+.0fµg", vitaminAChange);
+    }
+
+    public String getVitaminBChangeDisplay() {
+        return String.format("%+.0fmg", vitaminBChange);
+    }
+
+    public String getVitaminCChangeDisplay() {
+        return String.format("%+.0fmg", vitaminCChange);
+    }
+
+    public String getVitaminDChangeDisplay() {
+        return String.format("%+.0fµg", vitaminDChange);
+    }
+
     public String getPercentageChange(String nutrientType) {
         double originalValue = switch (nutrientType.toLowerCase()) {
             case "calories" -> originalFood.getCalories();
@@ -67,6 +95,10 @@ public class FoodSwapRecommendation {
             case "carbs" -> originalFood.getCarbs();
             case "fats" -> originalFood.getFats();
             case "fiber" -> originalFood.getFiber();
+            case "vitamina" -> originalFood.getVitaminA();
+            case "vitaminb" -> originalFood.getVitaminB();
+            case "vitaminc" -> originalFood.getVitaminC();
+            case "vitamind" -> originalFood.getVitaminD();
             default -> 0;
         };
         
@@ -76,6 +108,10 @@ public class FoodSwapRecommendation {
             case "carbs" -> carbsChange;
             case "fats" -> fatsChange;
             case "fiber" -> fiberChange;
+            case "vitamina" -> vitaminAChange;
+            case "vitaminb" -> vitaminBChange;
+            case "vitaminc" -> vitaminCChange;
+            case "vitamind" -> vitaminDChange;
             default -> 0;
         };
         

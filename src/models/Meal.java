@@ -14,6 +14,15 @@ public class Meal {
     private double totalCarbs;
     private double totalFats;
     private double totalFiber;
+    private double totalSodium;
+    private double totalSugars;
+    private double totalSaturatedFats;
+    private double totalIron;
+    private double totalCalcium;
+    private double totalVitaminA;
+    private double totalVitaminB;
+    private double totalVitaminC;
+    private double totalVitaminD;
 
     public Meal(int mealId, int userId, String mealType, Date mealDate, Timestamp createdAt) {
         this.mealId = mealId;
@@ -23,7 +32,7 @@ public class Meal {
         this.createdAt = createdAt;
     }
 
-    public Meal(int mealId, int userId, String mealType, Date mealDate, Timestamp createdAt, double totalCalories, double totalProtein, double totalCarbs, double totalFats, double totalFiber) {
+    public Meal(int mealId, int userId, String mealType, Date mealDate, Timestamp createdAt, double totalCalories, double totalProtein, double totalCarbs, double totalFats, double totalFiber, double totalSodium, double totalSugars, double totalSaturatedFats, double totalIron, double totalCalcium, double totalVitaminA, double totalVitaminB, double totalVitaminC, double totalVitaminD) {
         this.mealId = mealId;
         this.userId = userId;
         this.mealType = mealType;
@@ -34,6 +43,15 @@ public class Meal {
         this.totalCarbs = totalCarbs;
         this.totalFats = totalFats;
         this.totalFiber = totalFiber;
+        this.totalSodium = totalSodium;
+        this.totalSugars = totalSugars;
+        this.totalSaturatedFats = totalSaturatedFats;
+        this.totalIron = totalIron;
+        this.totalCalcium = totalCalcium;
+        this.totalVitaminA = totalVitaminA;
+        this.totalVitaminB = totalVitaminB;
+        this.totalVitaminC = totalVitaminC;
+        this.totalVitaminD = totalVitaminD;
     }
 
     // Getters
@@ -77,6 +95,42 @@ public class Meal {
         return totalFiber;
     }
 
+    public double getTotalSodium() {
+        return totalSodium;
+    }
+
+    public double getTotalSugars() {
+        return totalSugars;
+    }
+
+    public double getTotalSaturatedFats() {
+        return totalSaturatedFats;
+    }
+
+    public double getTotalIron() {
+        return totalIron;
+    }
+
+    public double getTotalCalcium() {
+        return totalCalcium;
+    }
+
+    public double getTotalVitaminA() {
+        return totalVitaminA;
+    }
+
+    public double getTotalVitaminB() {
+        return totalVitaminB;
+    }
+
+    public double getTotalVitaminC() {
+        return totalVitaminC;
+    }
+
+    public double getTotalVitaminD() {
+        return totalVitaminD;
+    }
+
     // Setters
     public void setMealId(int mealId) {
         this.mealId = mealId;
@@ -116,5 +170,41 @@ public class Meal {
 
     public void setTotalFiber(double totalFiber) {
         this.totalFiber = totalFiber;
+    }
+
+    public void setTotalSodium(double totalSodium) {
+        this.totalSodium = totalSodium;
+    }
+
+    public void setTotalSugars(double totalSugars) {
+        this.totalSugars = totalSugars;
+    }
+
+    public void setTotalSaturatedFats(double totalSaturatedFats) {
+        this.totalSaturatedFats = totalSaturatedFats;
+    }
+
+    public void setTotalIron(double totalIron) {
+        this.totalIron = totalIron;
+    }
+
+    public void setTotalCalcium(double totalCalcium) {
+        this.totalCalcium = totalCalcium;
+    }
+
+    public void setTotalVitaminA(double totalVitaminA) {
+        this.totalVitaminA = totalVitaminA;
+    }
+
+    public void setTotalVitaminB(double totalVitaminB) {
+        this.totalVitaminB = totalVitaminB;
+    }
+
+    public void setTotalVitaminC(double totalVitaminC) {
+        this.totalVitaminC = totalVitaminC;
+    }
+
+    public void setTotalVitaminD(double totalVitaminD) {
+        this.totalVitaminD = totalVitaminD;
     }
 }

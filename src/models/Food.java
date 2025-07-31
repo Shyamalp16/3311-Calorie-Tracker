@@ -50,7 +50,28 @@ public class Food {
         this.nutrients = nutrients;
     }
 
-    // Getters
+    private Food(Builder builder) {
+        this.foodID = builder.foodID;
+        this.foodDescription = builder.foodDescription;
+        this.calories = builder.calories;
+        this.protein = builder.protein;
+        this.carbs = builder.carbs;
+        this.fats = builder.fats;
+        this.fiber = builder.fiber;
+        this.sodium = builder.sodium;
+        this.sugars = builder.sugars;
+        this.saturatedFats = builder.saturatedFats;
+        this.iron = builder.iron;
+        this.calcium = builder.calcium;
+        this.vitaminA = builder.vitaminA;
+        this.vitaminB = builder.vitaminB;
+        this.vitaminC = builder.vitaminC;
+        this.vitaminD = builder.vitaminD;
+        this.foodGroup = builder.foodGroup;
+        this.foodSource = builder.foodSource;
+        this.nutrients = new HashMap<>(builder.nutrients);
+    }
+
     public int getFoodID() {
         return foodID;
     }
@@ -131,7 +152,6 @@ public class Food {
         return nutrients.getOrDefault(nutrientName, 0.0);
     }
 
-    // Setters
     public void setFoodID(int foodID) {
         this.foodID = foodID;
     }
@@ -206,5 +226,134 @@ public class Food {
 
     public void setNutrients(Map<String, Double> nutrients) {
         this.nutrients = nutrients;
+    }
+
+    public static class Builder {
+        private int foodID;
+        private String foodDescription = "";
+        private double calories = 0.0;
+        private double protein = 0.0;
+        private double carbs = 0.0;
+        private double fats = 0.0;
+        private double fiber = 0.0;
+        private double sodium = 0.0;
+        private double sugars = 0.0;
+        private double saturatedFats = 0.0;
+        private double iron = 0.0;
+        private double calcium = 0.0;
+        private double vitaminA = 0.0;
+        private double vitaminB = 0.0;
+        private double vitaminC = 0.0;
+        private double vitaminD = 0.0;
+        private String foodGroup = "Unknown";
+        private String foodSource = "Unknown";
+        private Map<String, Double> nutrients = new HashMap<>();
+
+        public Builder id(int foodID) {
+            this.foodID = foodID;
+            return this;
+        }
+
+        public Builder description(String foodDescription) {
+            this.foodDescription = foodDescription;
+            return this;
+        }
+
+        public Builder calories(double calories) {
+            this.calories = calories;
+            return this;
+        }
+
+        public Builder protein(double protein) {
+            this.protein = protein;
+            return this;
+        }
+
+        public Builder carbs(double carbs) {
+            this.carbs = carbs;
+            return this;
+        }
+
+        public Builder fats(double fats) {
+            this.fats = fats;
+            return this;
+        }
+
+        public Builder fiber(double fiber) {
+            this.fiber = fiber;
+            return this;
+        }
+
+        public Builder sodium(double sodium) {
+            this.sodium = sodium;
+            return this;
+        }
+
+        public Builder sugars(double sugars) {
+            this.sugars = sugars;
+            return this;
+        }
+
+        public Builder saturatedFats(double saturatedFats) {
+            this.saturatedFats = saturatedFats;
+            return this;
+        }
+
+        public Builder iron(double iron) {
+            this.iron = iron;
+            return this;
+        }
+
+        public Builder calcium(double calcium) {
+            this.calcium = calcium;
+            return this;
+        }
+
+        public Builder vitaminA(double vitaminA) {
+            this.vitaminA = vitaminA;
+            return this;
+        }
+
+        public Builder vitaminB(double vitaminB) {
+            this.vitaminB = vitaminB;
+            return this;
+        }
+
+        public Builder vitaminC(double vitaminC) {
+            this.vitaminC = vitaminC;
+            return this;
+        }
+
+        public Builder vitaminD(double vitaminD) {
+            this.vitaminD = vitaminD;
+            return this;
+        }
+
+        public Builder foodGroup(String foodGroup) {
+            this.foodGroup = foodGroup;
+            return this;
+        }
+
+        public Builder foodSource(String foodSource) {
+            this.foodSource = foodSource;
+            return this;
+        }
+
+        public Builder nutrients(Map<String, Double> nutrients) {
+            this.nutrients = new HashMap<>(nutrients);
+            return this;
+        }
+
+        public Builder addNutrient(String name, double value) {
+            this.nutrients.put(name, value);
+            return this;
+        }
+
+//        public Food build() {
+//            if (calories == 0.0 && (protein > 0 || carbs > 0 || fats > 0)) {
+//                calories = (protein * 4) + (carbs * 4) + (fats * 9);
+//            }
+//            return new Food(this);
+//        }
     }
 }

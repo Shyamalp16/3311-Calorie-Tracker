@@ -42,8 +42,8 @@ public class FoodSwapGoal {
 
     private NutrientType nutrientType;
     private IntensityLevel intensityLevel;
-    private Double specificValue; // For precise goals like "increase by 2g"
-    private Double specificPercentage; // For percentage goals like "decrease by 10%"
+    private Double specificValue;
+    private Double specificPercentage;
 
     public FoodSwapGoal(NutrientType nutrientType, IntensityLevel intensityLevel) {
         this.nutrientType = nutrientType;
@@ -64,13 +64,11 @@ public class FoodSwapGoal {
         }
     }
 
-    // Getters
     public NutrientType getNutrientType() { return nutrientType; }
     public IntensityLevel getIntensityLevel() { return intensityLevel; }
     public Double getSpecificValue() { return specificValue; }
     public Double getSpecificPercentage() { return specificPercentage; }
 
-    // Setters
     public void setNutrientType(NutrientType nutrientType) { this.nutrientType = nutrientType; }
     public void setIntensityLevel(IntensityLevel intensityLevel) { this.intensityLevel = intensityLevel; }
     public void setSpecificValue(Double specificValue) { this.specificValue = specificValue; }

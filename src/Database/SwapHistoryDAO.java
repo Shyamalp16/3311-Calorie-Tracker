@@ -9,20 +9,56 @@ import java.util.Date;
 import java.util.List;
 
 public class SwapHistoryDAO extends AbstractDAO<SwapHistory> {
+    
+    public SwapHistoryDAO() {
+        super();
+        ensureTableExists();
+    }
+    
+    private void ensureTableExists() {
+        try {
+            createSwapHistoryTable();
+            updateTableSchemaIfNeeded();
+        } catch (Exception e) {
+            // Table creation failed, but this may be normal
+        }
+    }
+    
+    private void updateTableSchemaIfNeeded() {
+        String alterSql = "ALTER TABLE swap_history MODIFY COLUMN unit VARCHAR(50) NOT NULL";
+        
+        try (var conn = DatabaseConnector.getInstance().getConnection();
+             Statement stmt = conn.createStatement()) {
+            stmt.execute(alterSql);
+        } catch (SQLException e) {
+            // Column update failed, but this may be normal
+        }
+    }
 
     public int saveSwapHistory(SwapHistory swapHistory) {
+        if (!DatabaseConnector.getInstance().testConnection()) {
+            return -1;
+        }
+        
         String sql = """
             INSERT INTO swap_history (user_id, meal_id, original_food_id, swapped_food_id, 
                                     quantity, unit, swap_reason, applied_at, is_active) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """;
         
-        try (var conn = DatabaseConnector.getConnection();
+        try (var conn = DatabaseConnector.getInstance().getConnection();
              var pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             
-            setParameters(pstmt, swapHistory.getUserId(), swapHistory.getMealId(), swapHistory.getOriginalFoodId(), 
-                        swapHistory.getSwappedFoodId(), swapHistory.getQuantity(), swapHistory.getUnit(), 
-                        swapHistory.getSwapReason(), swapHistory.getAppliedAt(), swapHistory.isActive());
+            
+            pstmt.setInt(1, swapHistory.getUserId());
+            pstmt.setInt(2, swapHistory.getMealId());
+            pstmt.setInt(3, swapHistory.getOriginalFoodId());
+            pstmt.setInt(4, swapHistory.getSwappedFoodId());
+            pstmt.setDouble(5, swapHistory.getQuantity());
+            pstmt.setString(6, swapHistory.getUnit());
+            pstmt.setString(7, swapHistory.getSwapReason());
+            pstmt.setTimestamp(8, swapHistory.getAppliedAt());
+            pstmt.setBoolean(9, swapHistory.isActive());
             
             pstmt.executeUpdate();
             
@@ -71,7 +107,7 @@ public class SwapHistoryDAO extends AbstractDAO<SwapHistory> {
                 original_food_id INT NOT NULL,
                 swapped_food_id INT NOT NULL,
                 quantity DOUBLE NOT NULL,
-                unit VARCHAR(10) NOT NULL,
+                unit VARCHAR(50) NOT NULL,
                 swap_reason TEXT,
                 applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 is_active BOOLEAN DEFAULT TRUE,
@@ -81,7 +117,7 @@ public class SwapHistoryDAO extends AbstractDAO<SwapHistory> {
             )
             """;
         
-        try (var conn = DatabaseConnector.getConnection();
+        try (var conn = DatabaseConnector.getInstance().getConnection();
              Statement stmt = conn.createStatement()) {
             stmt.execute(sql);
         } catch (SQLException e) {

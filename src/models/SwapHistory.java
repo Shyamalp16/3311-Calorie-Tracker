@@ -12,7 +12,7 @@ public class SwapHistory {
     private String unit;
     private String swapReason;
     private Timestamp appliedAt;
-    private boolean isActive; // To track if swap is currently applied
+    private boolean isActive; 
 
     public SwapHistory(int historyId, int userId, int mealId, int originalFoodId, 
                       int swappedFoodId, double quantity, String unit, String swapReason, 
@@ -29,14 +29,12 @@ public class SwapHistory {
         this.isActive = isActive;
     }
 
-    // Constructor for new swaps (without historyId)
     public SwapHistory(int userId, int mealId, int originalFoodId, int swappedFoodId, 
                       double quantity, String unit, String swapReason, boolean isActive) {
         this(0, userId, mealId, originalFoodId, swappedFoodId, quantity, unit, 
              swapReason, new Timestamp(System.currentTimeMillis()), isActive);
     }
 
-    // Getters
     public int getHistoryId() { return historyId; }
     public int getUserId() { return userId; }
     public int getMealId() { return mealId; }
@@ -48,7 +46,6 @@ public class SwapHistory {
     public Timestamp getAppliedAt() { return appliedAt; }
     public boolean isActive() { return isActive; }
 
-    // Setters
     public void setHistoryId(int historyId) { this.historyId = historyId; }
     public void setUserId(int userId) { this.userId = userId; }
     public void setMealId(int mealId) { this.mealId = mealId; }

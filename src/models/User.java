@@ -2,7 +2,6 @@ package models;
 import java.sql.Date;
 import java.time.LocalDate;
 
-//ok so the way that the work flow goes is that you you have UI -> creates user object -> calls of user data access operation to create the user in data (and also generate an id)
 public class User {
     private int userId;
     private String name;
@@ -15,10 +14,8 @@ public class User {
     private String activityLevel;
     private java.sql.Timestamp createdAt;
     
-    // Default constructor
     public User() {}
     
-    // Constructor with parameters
     public User(String name, String username, String password, String gender, Date birthDate, 
                 double height, double weight, String activityLevel) {
         this.name = name;
@@ -30,7 +27,6 @@ public class User {
         this.weight = weight;
         this.activityLevel = activityLevel;
     }    
-    // Getters and Setters
     public int getUserId() { return userId; }
     public void setUserId(int userId) { this.userId = userId; }
     
@@ -63,6 +59,6 @@ public class User {
     
     @Override
     public String toString() {
-        return name; // This is what shows in the dropdown
+        return name; 
     }
 }

@@ -1,6 +1,8 @@
 package Database;
 
 import models.Food;
+import models.FoodDirector;
+import models.StandardFoodBuilder;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -148,7 +150,7 @@ public class FoodDAO extends AbstractDAO<Food> {
             case "vitaminb" -> 418;
             case "vitaminc" -> 401;
             case "vitamind" -> 324;
-            default -> 208; // Default to calories
+            default -> 208;
         };
         
         String sql = """
@@ -191,7 +193,7 @@ public class FoodDAO extends AbstractDAO<Food> {
 
     public String getFoodGroupById(int foodId) {
         String sql = "SELECT fg.FoodGroupName FROM food_name fn JOIN food_group fg ON fn.FoodGroupID = fg.FoodGroupID WHERE fn.FoodID = ?";
-        try (var conn = DatabaseConnector.getConnection(); var pstmt = conn.prepareStatement(sql)) {
+        try (var conn = DatabaseConnector.getInstance().getConnection(); var pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, foodId);
             var rs = pstmt.executeQuery();
             if (rs.next()) {
@@ -206,7 +208,7 @@ public class FoodDAO extends AbstractDAO<Food> {
     public Map<String, Integer> getMeasuresForFood(int foodId) {
         Map<String, Integer> measures = new HashMap<>();
         String sql = "SELECT mn.MeasureName, mn.MeasureID FROM measure_name mn JOIN conversion_factor cf ON mn.MeasureID = cf.MeasureID WHERE cf.FoodID = ?";
-        try (var conn = DatabaseConnector.getConnection(); var pstmt = conn.prepareStatement(sql)) {
+        try (var conn = DatabaseConnector.getInstance().getConnection(); var pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, foodId);
             var rs = pstmt.executeQuery();
             while (rs.next()) {
@@ -220,7 +222,7 @@ public class FoodDAO extends AbstractDAO<Food> {
 
     public double getConversionFactor(int foodId, int measureId) {
         String sql = "SELECT ConversionFactorValue FROM conversion_factor WHERE FoodID = ? AND MeasureID = ?";
-        try (var conn = DatabaseConnector.getConnection(); var pstmt = conn.prepareStatement(sql)) {
+        try (var conn = DatabaseConnector.getInstance().getConnection(); var pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, foodId);
             pstmt.setInt(2, measureId);
             var rs = pstmt.executeQuery();
@@ -257,27 +259,22 @@ public class FoodDAO extends AbstractDAO<Food> {
         double vitaminC = rs.getDouble("vitaminC");
         double vitaminD = rs.getDouble("vitaminD");
 
-        if (calories == 0 && (protein > 0 || carbs > 0 || fats > 0)) {
-            calories = (protein * 4) + (carbs * 4) + (fats * 9);
+        FoodDirector director = new FoodDirector(new StandardFoodBuilder());
+        
+        String foodGroup = "Unknown";
+        String foodSource = "Unknown";
+        try {
+            foodGroup = rs.getString("FoodGroupName");
+            foodSource = rs.getString("FoodSourceDescription");
+        } catch (SQLException ignored) {
         }
-
-        return new Food(
+        
+        return director.constructCompleteFoodFromDatabase(
             rs.getInt("FoodID"),
             rs.getString("FoodDescription"),
-            calories,
-            protein,
-            carbs,
-            fats,
-            fiber,
-            sodium,
-            sugars,
-            saturated_fats,
-            iron,
-            calcium,
-            vitaminA,
-            vitaminB,
-            vitaminC,
-            vitaminD
+            calories, protein, carbs, fats, fiber, sodium, sugars,
+            saturated_fats, iron, calcium, vitaminA, vitaminB,
+            vitaminC, vitaminD, foodGroup, foodSource
         );
     }
 }

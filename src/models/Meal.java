@@ -54,7 +54,6 @@ public class Meal {
         this.totalVitaminD = totalVitaminD;
     }
 
-    // Getters
     public int getMealId() {
         return mealId;
     }
@@ -131,7 +130,6 @@ public class Meal {
         return totalVitaminD;
     }
 
-    // Setters
     public void setMealId(int mealId) {
         this.mealId = mealId;
     }

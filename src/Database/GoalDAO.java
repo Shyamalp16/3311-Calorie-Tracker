@@ -13,7 +13,7 @@ public class GoalDAO extends AbstractDAO<Goal> {
         String insertSql = "INSERT INTO goals (user_id, calories, protein, carbs, fats, fiber) VALUES (?, ?, ?, ?, ?, ?)";
         String updateSql = "UPDATE goals SET calories = ?, protein = ?, carbs = ?, fats = ?, fiber = ? WHERE user_id = ?";
 
-        try (var conn = DatabaseConnector.getConnection();
+        try (var conn = DatabaseConnector.getInstance().getConnection();
              var checkStmt = conn.prepareStatement(checkIfExistsSql)) {
             checkStmt.setInt(1, goal.getUserId());
             ResultSet rs = checkStmt.executeQuery();

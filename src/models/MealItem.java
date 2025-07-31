@@ -43,7 +43,6 @@ public class MealItem {
         this.vitaminD = vitaminD;
     }
 
-    // Getters
     public int getItemId() {
         return itemId;
     }
@@ -120,7 +119,6 @@ public class MealItem {
         return vitaminD;
     }
 
-    // Setters
     public void setItemId(int itemId) {
         this.itemId = itemId;
     }

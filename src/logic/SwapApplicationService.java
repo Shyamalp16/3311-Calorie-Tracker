@@ -15,7 +15,6 @@ public class SwapApplicationService {
         this.swapHistoryDAO = new SwapHistoryDAO();
         this.foodDAO = new FoodDAO();
         
-        // Ensure swap history table exists
         swapHistoryDAO.createSwapHistoryTable();
     }
     
@@ -23,8 +22,13 @@ public class SwapApplicationService {
         boolean allSuccessful = true;
         
         for (FoodSwapRecommendation swap : swaps) {
-            // Find which meal contains this food item on the given date
-            int mealId = findMealIdForFood(userId, swap.getOriginalFood().getFoodID(), date);
+            // Try to find meal using both food ID and meal type for better accuracy
+            int mealId = findMealIdForFoodAndType(userId, swap.getOriginalFood().getFoodID(), date, swap.getMealType());
+            
+            if (mealId == -1) {
+                // Fallback to original method if meal type approach fails
+                mealId = findMealIdForFood(userId, swap.getOriginalFood().getFoodID(), date);
+            }
             
             if (mealId != -1) {
                 boolean success = applySingleSwap(swap, mealId, userId);
@@ -32,7 +36,6 @@ public class SwapApplicationService {
                     allSuccessful = false;
                 }
             } else {
-                System.err.println("Could not find meal for food: " + swap.getOriginalFood().getFoodDescription() + " on date " + date);
                 allSuccessful = false;
             }
         }
@@ -44,33 +47,68 @@ public class SwapApplicationService {
                                         Date startDate, Date endDate) {
         boolean allSuccessful = true;
         
-        // Get all meals in the date range
-        List<Meal> mealsInRange = mealDAO.getMealsInDateRange(userId, startDate, endDate);
-        
-        for (Meal meal : mealsInRange) {
-            List<MealItem> mealItems = mealDAO.getMealItemsByMealId(meal.getMealId());
+        try {
+            List<Meal> mealsInRange = mealDAO.getMealsInDateRange(userId, startDate, endDate);
             
-            // Apply relevant swaps to this meal
-            for (FoodSwapRecommendation swap : swaps) {
-                // Check if this meal contains the original food
-                boolean hasOriginalFood = mealItems.stream()
-                    .anyMatch(item -> item.getFoodId() == swap.getOriginalFood().getFoodID());
+            if (mealsInRange.isEmpty()) {
+                return true; // Not an error if no meals exist
+            }
+            
+            for (Meal meal : mealsInRange) {
+                List<MealItem> mealItems = mealDAO.getMealItemsByMealId(meal.getMealId());
                 
-                if (hasOriginalFood) {
-                    boolean success = applySingleSwap(swap, meal.getMealId(), userId);
-                    if (!success) {
-                        allSuccessful = false;
+                // Track which foods have been swapped in this specific meal
+                Set<Integer> swappedFoodsInThisMeal = new HashSet<>();
+                
+                for (FoodSwapRecommendation swap : swaps) {
+                    int originalFoodId = swap.getOriginalFood().getFoodID();
+                    
+                    // Skip if we've already swapped this food in this meal
+                    if (swappedFoodsInThisMeal.contains(originalFoodId)) {
+                        continue;
+                    }
+                    
+                    boolean hasOriginalFood = mealItems.stream()
+                        .anyMatch(item -> item.getFoodId() == originalFoodId);
+                    
+                    if (hasOriginalFood) {
+                        boolean success = applySingleSwap(swap, meal.getMealId(), userId);
+                        if (!success) {
+                            allSuccessful = false;
+                        } else {
+                            // Mark this food as swapped in this meal
+                            swappedFoodsInThisMeal.add(originalFoodId);
+                        }
                     }
                 }
             }
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
         }
         
         return allSuccessful;
     }
+
+    public boolean applySwapToMealItem(int mealId, int originalFoodId, int newFoodId, double newQuantity, String newUnit) {
+        try {
+            boolean updateSuccess = mealDAO.updateMealItem(
+                mealId,
+                originalFoodId,
+                newFoodId,
+                newQuantity,
+                newUnit
+            );
+            return updateSuccess;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
     
     private boolean applySingleSwap(FoodSwapRecommendation swap, int mealId, int userId) {
         try {
-            // Update the meal item in the database
             boolean updateSuccess = mealDAO.updateMealItem(
                 mealId,
                 swap.getOriginalFood().getFoodID(),
@@ -80,7 +118,6 @@ public class SwapApplicationService {
             );
             
             if (updateSuccess) {
-                // Record the swap in history
                 SwapHistory swapHistory = new SwapHistory(
                     userId,
                     mealId,
@@ -89,7 +126,7 @@ public class SwapApplicationService {
                     swap.getQuantity(),
                     swap.getUnit(),
                     swap.getSwapReason(),
-                    true // isActive
+                    true 
                 );
                 
                 int historyId = swapHistoryDAO.saveSwapHistory(swapHistory);
@@ -97,7 +134,6 @@ public class SwapApplicationService {
             }
             
         } catch (Exception e) {
-            System.err.println("Error applying swap: " + e.getMessage());
             e.printStackTrace();
         }
         
@@ -105,21 +141,36 @@ public class SwapApplicationService {
     }
     
     private int findMealIdForFood(int userId, int foodId, Date date) {
-        // Get meals for the specified date and check which one contains this food
-        List<Meal> mealsOnDate = mealDAO.getMealsForUserAndDate(userId, date);
+        // Convert java.util.Date to java.sql.Date for database query
+        java.sql.Date sqlDate = new java.sql.Date(date.getTime());
+        List<Meal> mealsOnDate = mealDAO.getMealsForUserAndDate(userId, sqlDate);
         
         for (Meal meal : mealsOnDate) {
             if (mealDAO.hasMealItemWithFood(meal.getMealId(), foodId)) {
                 return meal.getMealId();
             }
         }
+        return -1; 
+    }
+    
+    private int findMealIdForFoodAndType(int userId, int foodId, Date date, String mealType) {
+        // Convert java.util.Date to java.sql.Date for database query
+        java.sql.Date sqlDate = new java.sql.Date(date.getTime());
+        List<Meal> mealsOnDate = mealDAO.getMealsForUserAndDate(userId, sqlDate);
         
-        return -1; // Not found
+        for (Meal meal : mealsOnDate) {
+            // First check if meal type matches
+            if (meal.getMealType().equalsIgnoreCase(mealType)) {
+                if (mealDAO.hasMealItemWithFood(meal.getMealId(), foodId)) {
+                    return meal.getMealId();
+                }
+            }
+        }
+        return -1; 
     }
     
     public boolean revertSwap(int historyId, int userId) {
         try {
-            // Get the swap history record
             List<SwapHistory> userHistory = swapHistoryDAO.getSwapHistoryForUser(userId);
             SwapHistory targetSwap = userHistory.stream()
                 .filter(sh -> sh.getHistoryId() == historyId)
@@ -127,24 +178,21 @@ public class SwapApplicationService {
                 .orElse(null);
             
             if (targetSwap != null && targetSwap.isActive()) {
-                // Revert the meal item back to original food
                 boolean revertSuccess = mealDAO.updateMealItem(
                     targetSwap.getMealId(),
-                    targetSwap.getSwappedFoodId(),  // Current food (swapped)
-                    targetSwap.getOriginalFoodId(), // Back to original
+                    targetSwap.getSwappedFoodId(),  
+                    targetSwap.getOriginalFoodId(), 
                     targetSwap.getQuantity(),
                     targetSwap.getUnit()
                 );
                 
                 if (revertSuccess) {
-                    // Mark the swap as inactive
                     swapHistoryDAO.deactivateSwap(historyId);
                     return true;
                 }
             }
             
         } catch (Exception e) {
-            System.err.println("Error reverting swap: " + e.getMessage());
             e.printStackTrace();
         }
         
@@ -188,9 +236,8 @@ public class SwapApplicationService {
                                    totalFatChange, totalCarbChange, swaps.size());
     }
     
-    // Helper method - in a real app this would come from session/context
     private int getCurrentUserId() {
-        return 1; // Placeholder - should be injected or from session
+        return 1; 
     }
     
     public static class SwapEffectSummary {

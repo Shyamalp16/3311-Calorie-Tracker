@@ -15,7 +15,7 @@ public class MealDAO extends AbstractDAO<Meal> {
     public int saveMeal(Meal meal) {
         String sql = "INSERT INTO meals (user_id, meal_type, meal_date, created_at, total_calories, total_protein, total_carbs, total_fat, total_fiber, total_sodium, total_sugars, total_saturated_fats, total_iron, total_calcium, total_vitaminA, total_vitaminB, total_vitaminC, total_vitaminD) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
-        try (var conn = DatabaseConnector.getConnection();
+        try (var conn = DatabaseConnector.getInstance().getConnection();
              var pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             
             setParameters(pstmt, meal.getUserId(), meal.getMealType(), new java.sql.Date(meal.getMealDate().getTime()), 
@@ -38,7 +38,7 @@ public class MealDAO extends AbstractDAO<Meal> {
 
     public void saveMealItems(int mealId, List<MealItem> mealItems) {
         String sql = "INSERT INTO meal_items (meal_id, food_id, quantity, unit, calories, protein, carbs, fats, fiber, sodium, sugars, saturated_fats, iron, calcium, vitaminA, vitaminB, vitaminC, vitaminD) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        try (var conn = DatabaseConnector.getConnection();
+        try (var conn = DatabaseConnector.getInstance().getConnection();
              var pstmt = conn.prepareStatement(sql)) {
             for (MealItem item : mealItems) {
                 setParameters(pstmt, mealId, item.getFoodId(), item.getQuantity(), item.getUnit(), item.getCalories(), 
@@ -58,10 +58,15 @@ public class MealDAO extends AbstractDAO<Meal> {
         return findMany(sql, userId, new java.sql.Date(date.getTime()));
     }
 
+    public Meal getMealById(int mealId) {
+        String sql = "SELECT * FROM meals WHERE meal_id = ?";
+        return findOne(sql, mealId).orElse(null);
+    }
+
     public List<MealItem> getMealItemsByMealId(int mealId) {
         String sql = "SELECT * FROM meal_items WHERE meal_id = ?";
         List<MealItem> mealItems = new java.util.ArrayList<>();
-        try (var conn = DatabaseConnector.getConnection();
+        try (var conn = DatabaseConnector.getInstance().getConnection();
              var pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, mealId);
             ResultSet rs = pstmt.executeQuery();
@@ -99,7 +104,6 @@ public class MealDAO extends AbstractDAO<Meal> {
         models.Food newFood = foodDAO.getFoodById(newFoodId).orElse(null);
 
         if (newFood == null) {
-            System.err.println("Error: Could not retrieve details for the new food item.");
             return false;
         }
 
@@ -151,7 +155,7 @@ public class MealDAO extends AbstractDAO<Meal> {
 
     public boolean hasMealItemWithFood(int mealId, int foodId) {
         String sql = "SELECT COUNT(*) FROM meal_items WHERE meal_id = ? AND food_id = ?";
-        try (var conn = DatabaseConnector.getConnection(); var pstmt = conn.prepareStatement(sql)) {
+        try (var conn = DatabaseConnector.getInstance().getConnection(); var pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, mealId);
             pstmt.setInt(2, foodId);
             var rs = pstmt.executeQuery();

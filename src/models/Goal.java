@@ -17,7 +17,6 @@ public class Goal {
         this.fiber = fiber;
     }
 
-    // Getters and setters
     public int getUserId() {
         return userId;
     }

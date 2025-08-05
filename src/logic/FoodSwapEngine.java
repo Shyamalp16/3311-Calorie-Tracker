@@ -186,24 +186,14 @@ public class FoodSwapEngine {
                                                       String unit,
                                                       Set<Integer> excludedRecIds) {
         
-        List<Food> candidates = foodDAO.findSimilarFoodsByGroup(originalFood.getFoodID(), 50);
-        
-        for (FoodSwapGoal goal : goals) {
-            List<Food> nutrientCandidates = findCandidatesByNutrientGoal(originalFood, goal);
-            for (Food candidate : nutrientCandidates) {
-                if (!candidates.contains(candidate)) { // Avoid duplicates
-                    candidates.add(candidate);
-                }
-            }
-        }
-        
+        List<Food> candidates = gatherSwapCandidates(originalFood, goals);
         
         Food bestCandidate = null;
         double bestScore = -1;
         String bestReason = "";
         
         for (Food candidate : candidates) {
-            if (excludedRecIds.contains(candidate.getFoodID())) {
+            if (excludedRecIds.contains(candidate.getFoodID()) || candidate.getFoodID() == originalFood.getFoodID()) {
                 continue;
             }
 
@@ -216,13 +206,26 @@ public class FoodSwapEngine {
             }
         }
         
-        
         if (bestCandidate != null) {
             return new FoodSwapRecommendation(originalFood, bestCandidate, 
                                             quantity, unit, bestReason);
         }
         
         return null;
+    }
+
+    private List<Food> gatherSwapCandidates(Food originalFood, List<FoodSwapGoal> goals) {
+        List<Food> candidates = foodDAO.findSimilarFoodsByGroup(originalFood.getFoodID(), 50);
+        
+        for (FoodSwapGoal goal : goals) {
+            List<Food> nutrientCandidates = findCandidatesByNutrientGoal(originalFood, goal);
+            for (Food candidate : nutrientCandidates) {
+                if (!candidates.contains(candidate)) {
+                    candidates.add(candidate);
+                }
+            }
+        }
+        return candidates;
     }
     
     private List<Food> findCandidatesByNutrientGoal(Food originalFood, FoodSwapGoal goal) {

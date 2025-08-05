@@ -238,24 +238,35 @@ public class CanadaFoodGuidePanel extends JPanel {
     }
 
     public void refresh() {
-        Component topPanel = getComponent(0);
-        if (topPanel instanceof JPanel) {
-            JPanel top = (JPanel) topPanel;
-            Component timePeriodPanel = top.getComponent(1);
-            if (timePeriodPanel instanceof JPanel) {
-                for (Component c : ((JPanel) timePeriodPanel).getComponents()) {
-                    if (c instanceof JComboBox) {
-                        @SuppressWarnings("unchecked")
-                        JComboBox<String> timePeriodCombo = (JComboBox<String>) c;
-                        String selectedPeriod = (String) timePeriodCombo.getSelectedItem();
-                        if (selectedPeriod != null) {
-                            updateCFGAnalysisForPeriod(selectedPeriod);
-                        }
-                        break;
-                    }
+        JComboBox<String> timePeriodCombo = findComboBox(this);
+        if (timePeriodCombo != null) {
+            String selectedPeriod = (String) timePeriodCombo.getSelectedItem();
+            if (selectedPeriod != null) {
+                updateCFGAnalysisForPeriod(selectedPeriod);
+            }
+        }
+    }
+
+    private JComboBox<String> findComboBox(Component component) {
+        if (component instanceof JComboBox) {
+            @SuppressWarnings("unchecked")
+            JComboBox<String> comboBox = (JComboBox<String>) component;
+            // Assuming this is the correct combo box based on its string type.
+            // A more robust solution might involve setting a name or action command.
+            if (comboBox.getModel().getElementAt(0) instanceof String) {
+                return comboBox;
+            }
+        }
+
+        if (component instanceof Container) {
+            for (Component c : ((Container) component).getComponents()) {
+                JComboBox<String> found = findComboBox(c);
+                if (found != null) {
+                    return found;
                 }
             }
         }
+        return null;
     }
 
     private Map<String, Double> convertToMap(DefaultPieDataset dataset) {

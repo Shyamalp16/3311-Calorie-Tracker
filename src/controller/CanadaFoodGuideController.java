@@ -20,57 +20,69 @@ public class CanadaFoodGuideController {
     }
 
     public Map<String, Double> calculateUserPlateData(String timePeriod) {
-        Map<String, Double> userPlateData = new HashMap<>();
-        
-        Calendar cal = Calendar.getInstance();
+        Date startDate = getStartDateForTimePeriod(timePeriod);
         Date endDate = new Date();
-        Date startDate;
         
+        List<Meal> allMeals = dashboardController.getMealsInDateRange(startDate, endDate);
+        
+        PlateData plateData = processMeals(allMeals);
+        
+        return calculateFinalPercentages(plateData);
+    }
+
+    private Date getStartDateForTimePeriod(String timePeriod) {
+        Calendar cal = Calendar.getInstance();
         switch (timePeriod) {
             case "Today":
                 cal.set(Calendar.HOUR_OF_DAY, 0);
                 cal.set(Calendar.MINUTE, 0);
                 cal.set(Calendar.SECOND, 0);
                 cal.set(Calendar.MILLISECOND, 0);
-                startDate = cal.getTime();
-                break;
+                return cal.getTime();
             case "Last 7 Days":
                 cal.add(Calendar.DAY_OF_MONTH, -7);
-                startDate = cal.getTime();
-                break;
+                return cal.getTime();
             case "Last 30 Days":
                 cal.add(Calendar.DAY_OF_MONTH, -30);
-                startDate = cal.getTime();
-                break;
+                return cal.getTime();
             case "All Time":
             default:
-                startDate = new Date(0);
-                break;
+                return new Date(0); // The epoch
         }
-        
-        List<Meal> allMeals = dashboardController.getMealsInDateRange(startDate, endDate);
-        Map<String, Double> foodGroupPortions = new HashMap<>();
-        double totalPortions = 0.0;
+    }
+
+    private PlateData processMeals(List<Meal> allMeals) {
+        PlateData plateData = new PlateData();
 
         for (Meal meal : allMeals) {
             List<MealItem> items = mealController.getMealItemsByMealId(meal.getMealId());
-            
             for (MealItem item : items) {
-                Food food = mealController.getFoodById(item.getFoodId());
-                if (food != null) {
-                    String databaseFoodGroup = mealController.getFoodGroupById(food.getFoodID());
-                    String cfgCategory = mapToCFGCategory(databaseFoodGroup);
-                    
-                    double portionWeight = calculateCFGPortionWeight(item.getQuantity(), item.getUnit(), cfgCategory);
-                    
-                    foodGroupPortions.put(cfgCategory, foodGroupPortions.getOrDefault(cfgCategory, 0.0) + portionWeight);
-                    totalPortions += portionWeight;
-                }
+                processMealItem(item, plateData);
             }
         }
+        return plateData;
+    }
+
+    private void processMealItem(MealItem item, PlateData plateData) {
+        Food food = mealController.getFoodById(item.getFoodId());
+        if (food == null) {
+            return;
+        }
+
+        String databaseFoodGroup = mealController.getFoodGroupById(food.getFoodID());
+        String cfgCategory = mapToCFGCategory(databaseFoodGroup);
+        
+        double portionWeight = calculateCFGPortionWeight(item.getQuantity(), item.getUnit(), cfgCategory);
+        
+        plateData.addPortion(cfgCategory, portionWeight);
+    }
+
+    private Map<String, Double> calculateFinalPercentages(PlateData plateData) {
+        Map<String, Double> userPlateData = new HashMap<>();
+        double totalPortions = plateData.getTotalPortions();
 
         if (totalPortions > 0) {
-            for (Map.Entry<String, Double> entry : foodGroupPortions.entrySet()) {
+            for (Map.Entry<String, Double> entry : plateData.getFoodGroupPortions().entrySet()) {
                 double percentage = entry.getValue() / totalPortions * 100;
                 userPlateData.put(entry.getKey(), percentage);
             }
@@ -80,7 +92,6 @@ public class CanadaFoodGuideController {
             userPlateData.put("Protein Foods", 0.0);
             userPlateData.put("Dairy & Alternatives", 0.0);
         }
-        
         return userPlateData;
     }
 
@@ -290,6 +301,24 @@ public class CanadaFoodGuideController {
         @FunctionalInterface
         interface RecommendationFunction {
             String getRecommendation(double absGap);
+        }
+    }
+    
+    private static class PlateData {
+        private final Map<String, Double> foodGroupPortions = new HashMap<>();
+        private double totalPortions = 0.0;
+
+        public void addPortion(String category, double weight) {
+            foodGroupPortions.put(category, foodGroupPortions.getOrDefault(category, 0.0) + weight);
+            totalPortions += weight;
+        }
+
+        public Map<String, Double> getFoodGroupPortions() {
+            return foodGroupPortions;
+        }
+
+        public double getTotalPortions() {
+            return totalPortions;
         }
     }
 }

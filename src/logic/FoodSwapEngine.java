@@ -273,71 +273,64 @@ public class FoodSwapEngine {
     
     private SwapScore evaluateSwap(Food original, Food candidate, List<FoodSwapGoal> goals) {
         SwapScore score = new SwapScore();
-        
-        boolean allGoalsMet = true;
         StringBuilder reasonBuilder = new StringBuilder();
-        
+        boolean allGoalsMet = true;
+
         for (FoodSwapGoal goal : goals) {
-            double originalValue = getNutrientValue(original, goal.getNutrientType());
-            double candidateValue = getNutrientValue(candidate, goal.getNutrientType());
-            double targetValue = calculateTargetValue(originalValue, goal);
-            
-            boolean goalMet = false;
-            if (goal.isIncrease()) {
-                goalMet = candidateValue > originalValue;
-                if (goalMet) {
-                    double improvement = candidateValue - originalValue;
-                    if (originalValue > 0) {
-                        score.goalScore += improvement / originalValue * 100; // Percentage improvement
-                    } else {
-                        score.goalScore += improvement * 10; // Fixed bonus for zero baseline
-                    }
-                    reasonBuilder.append(String.format("Increases %s by %.1fg; ", 
-                        goal.getNutrientType().getDisplayName().toLowerCase(), improvement));
-                }
-            } else if (goal.isDecrease()) {
-                goalMet = candidateValue < originalValue;
-                if (goalMet) {
-                    double reduction = originalValue - candidateValue;
-                    if (originalValue > 0) {
-                        score.goalScore += reduction / originalValue * 100; // Percentage reduction
-                    } else {
-                        score.goalScore += reduction * 10; // Fixed bonus
-                    }
-                    reasonBuilder.append(String.format("Reduces %s by %.1fg; ", 
-                        goal.getNutrientType().getDisplayName().toLowerCase(), reduction));
-                }
-            }
-            
-            if (!goalMet) {
+            if (!processGoal(goal, original, candidate, score, reasonBuilder)) {
                 allGoalsMet = false;
             }
         }
-        
+
         score.meetsGoals = allGoalsMet;
-        
+        score.preservationScore = calculatePreservationScore(original, candidate);
+        score.totalScore = score.goalScore + score.preservationScore;
+        score.reason = reasonBuilder.toString();
+
+        return score;
+    }
+
+    private boolean processGoal(FoodSwapGoal goal, Food original, Food candidate, SwapScore score, StringBuilder reasonBuilder) {
+        double originalValue = getNutrientValue(original, goal.getNutrientType());
+        double candidateValue = getNutrientValue(candidate, goal.getNutrientType());
+        boolean goalMet = false;
+
+        if (goal.isIncrease() && candidateValue > originalValue) {
+            goalMet = true;
+            updateScoreForIncrease(score, originalValue, candidateValue, goal, reasonBuilder);
+        } else if (goal.isDecrease() && candidateValue < originalValue) {
+            goalMet = true;
+            updateScoreForDecrease(score, originalValue, candidateValue, goal, reasonBuilder);
+        }
+
+        return goalMet;
+    }
+
+    private void updateScoreForIncrease(SwapScore score, double originalValue, double candidateValue, FoodSwapGoal goal, StringBuilder reasonBuilder) {
+        double improvement = candidateValue - originalValue;
+        score.goalScore += (originalValue > 0) ? (improvement / originalValue * 100) : (improvement * 10);
+        reasonBuilder.append(String.format("Increases %s by %.1fg; ", goal.getNutrientType().getDisplayName().toLowerCase(), improvement));
+    }
+
+    private void updateScoreForDecrease(SwapScore score, double originalValue, double candidateValue, FoodSwapGoal goal, StringBuilder reasonBuilder) {
+        double reduction = originalValue - candidateValue;
+        score.goalScore += (originalValue > 0) ? (reduction / originalValue * 100) : (reduction * 10);
+        reasonBuilder.append(String.format("Reduces %s by %.1fg; ", goal.getNutrientType().getDisplayName().toLowerCase(), reduction));
+    }
+
+    private double calculatePreservationScore(Food original, Food candidate) {
         double preservationScore = 0;
-        double[] originalNutrients = {original.getCalories(), original.getProtein(), 
-                                     original.getCarbs(), original.getFats(), original.getFiber()};
-        double[] candidateNutrients = {candidate.getCalories(), candidate.getProtein(), 
-                                      candidate.getCarbs(), candidate.getFats(), candidate.getFiber()};
-        
+        double[] originalNutrients = {original.getCalories(), original.getProtein(), original.getCarbs(), original.getFats(), original.getFiber()};
+        double[] candidateNutrients = {candidate.getCalories(), candidate.getProtein(), candidate.getCarbs(), candidate.getFats(), candidate.getFiber()};
+
         for (int i = 0; i < originalNutrients.length; i++) {
             if (originalNutrients[i] > 0) {
                 double diff = Math.abs(candidateNutrients[i] - originalNutrients[i]) / originalNutrients[i];
-                if (diff <= DEFAULT_TOLERANCE) {
-                    preservationScore += 20; 
-                } else {
-                    preservationScore += Math.max(0, 20 - (diff * 100)); // Penalty for deviation
-                }
+                preservationScore += (diff <= DEFAULT_TOLERANCE) ? 20 : Math.max(0, 20 - (diff * 100));
             }
         }
-        
-        score.preservationScore = preservationScore;
-        score.totalScore = score.goalScore + score.preservationScore;
-        score.reason = reasonBuilder.toString();
-        
-        return score;
+
+        return preservationScore;
     }
     
     private double getNutrientValue(Food food, FoodSwapGoal.NutrientType nutrientType) {

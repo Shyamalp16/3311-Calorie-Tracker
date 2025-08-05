@@ -21,26 +21,28 @@ public class MealItem {
     private double vitaminC;
     private double vitaminD;
 
-    public MealItem(int itemId, int mealId, int foodId, double quantity, String unit, double calories, double protein, double carbs, double fats, double fiber, double sodium, double sugars, double saturatedFats, double iron, double calcium, double vitaminA, double vitaminB, double vitaminC, double vitaminD) {
-        this.itemId = itemId;
-        this.mealId = mealId;
-        this.foodId = foodId;
-        this.quantity = quantity;
-        this.unit = unit;
-        this.calories = calories;
-        this.protein = protein;
-        this.carbs = carbs;
-        this.fats = fats;
-        this.fiber = fiber;
-        this.sodium = sodium;
-        this.sugars = sugars;
-        this.saturatedFats = saturatedFats;
-        this.iron = iron;
-        this.calcium = calcium;
-        this.vitaminA = vitaminA;
-        this.vitaminB = vitaminB;
-        this.vitaminC = vitaminC;
-        this.vitaminD = vitaminD;
+    public MealItem() {}
+
+    private MealItem(Builder builder) {
+        this.itemId = builder.itemId;
+        this.mealId = builder.mealId;
+        this.foodId = builder.foodId;
+        this.quantity = builder.quantity;
+        this.unit = builder.unit;
+        this.calories = builder.calories;
+        this.protein = builder.protein;
+        this.carbs = builder.carbs;
+        this.fats = builder.fats;
+        this.fiber = builder.fiber;
+        this.sodium = builder.sodium;
+        this.sugars = builder.sugars;
+        this.saturatedFats = builder.saturatedFats;
+        this.iron = builder.iron;
+        this.calcium = builder.calcium;
+        this.vitaminA = builder.vitaminA;
+        this.vitaminB = builder.vitaminB;
+        this.vitaminC = builder.vitaminC;
+        this.vitaminD = builder.vitaminD;
     }
 
     public int getItemId() {
@@ -193,5 +195,126 @@ public class MealItem {
 
     public void setVitaminD(double vitaminD) {
         this.vitaminD = vitaminD;
+    }
+
+    public static class Builder {
+        private int itemId;
+        private int mealId;
+        private int foodId;
+        private double quantity;
+        private String unit;
+        private double calories;
+        private double protein;
+        private double carbs;
+        private double fats;
+        private double fiber;
+        private double sodium;
+        private double sugars;
+        private double saturatedFats;
+        private double iron;
+        private double calcium;
+        private double vitaminA;
+        private double vitaminB;
+        private double vitaminC;
+        private double vitaminD;
+
+        public Builder itemId(int itemId) {
+            this.itemId = itemId;
+            return this;
+        }
+
+        public Builder mealId(int mealId) {
+            this.mealId = mealId;
+            return this;
+        }
+
+        public Builder foodId(int foodId) {
+            this.foodId = foodId;
+            return this;
+        }
+
+        public Builder quantity(double quantity) {
+            this.quantity = quantity;
+            return this;
+        }
+
+        public Builder unit(String unit) {
+            this.unit = unit;
+            return this;
+        }
+
+        public Builder calories(double calories) {
+            this.calories = calories;
+            return this;
+        }
+
+        public Builder protein(double protein) {
+            this.protein = protein;
+            return this;
+        }
+
+        public Builder carbs(double carbs) {
+            this.carbs = carbs;
+            return this;
+        }
+
+        public Builder fats(double fats) {
+            this.fats = fats;
+            return this;
+        }
+
+        public Builder fiber(double fiber) {
+            this.fiber = fiber;
+            return this;
+        }
+
+        public Builder sodium(double sodium) {
+            this.sodium = sodium;
+            return this;
+        }
+
+        public Builder sugars(double sugars) {
+            this.sugars = sugars;
+            return this;
+        }
+
+        public Builder saturatedFats(double saturatedFats) {
+            this.saturatedFats = saturatedFats;
+            return this;
+        }
+
+        public Builder iron(double iron) {
+            this.iron = iron;
+            return this;
+        }
+
+        public Builder calcium(double calcium) {
+            this.calcium = calcium;
+            return this;
+        }
+
+        public Builder vitaminA(double vitaminA) {
+            this.vitaminA = vitaminA;
+            return this;
+        }
+
+        public Builder vitaminB(double vitaminB) {
+            this.vitaminB = vitaminB;
+            return this;
+        }
+
+        public Builder vitaminC(double vitaminC) {
+            this.vitaminC = vitaminC;
+            return this;
+        }
+
+        public Builder vitaminD(double vitaminD) {
+            this.vitaminD = vitaminD;
+            return this;
+        }
+
+        public MealItem build() {
+            return new MealItem(this);
+        }
     }
 }

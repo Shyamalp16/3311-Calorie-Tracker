@@ -79,9 +79,25 @@ public class MealController implements IMealController {
         double vitaminC = food.getVitaminC() * quantity * conversionFactor;
         double vitaminD = food.getVitaminD() * quantity * conversionFactor;
         
-        return new MealItem(0, 0, food.getFoodID(), quantity, unit, calories, protein, 
-                           carbs, fats, fiber, sodium, sugars, saturatedFats, iron, 
-                           calcium, vitaminA, vitaminB, vitaminC, vitaminD);
+        return new MealItem.Builder()
+            .foodId(food.getFoodID())
+            .quantity(quantity)
+            .unit(unit)
+            .calories(calories)
+            .protein(protein)
+            .carbs(carbs)
+            .fats(fats)
+            .fiber(fiber)
+            .sodium(sodium)
+            .sugars(sugars)
+            .saturatedFats(saturatedFats)
+            .iron(iron)
+            .calcium(calcium)
+            .vitaminA(vitaminA)
+            .vitaminB(vitaminB)
+            .vitaminC(vitaminC)
+            .vitaminD(vitaminD)
+            .build();
     }
     
     /**
@@ -115,12 +131,26 @@ public class MealController implements IMealController {
             
             MealTotals totals = calculateMealTotals(mealItems);
             
-            Meal meal = new Meal(0, currentUser.getUserId(), mealType, 
-                               new java.sql.Date(mealDate.getTime()), 
-                               new Timestamp(System.currentTimeMillis()),
-                               totals.calories, totals.protein, totals.carbs, totals.fats, totals.fiber,
-                               totals.sodium, totals.sugars, totals.saturatedFats, totals.iron, 
-                               totals.calcium, totals.vitaminA, totals.vitaminB, totals.vitaminC, totals.vitaminD);
+            Meal meal = new Meal.Builder()
+                .userId(currentUser.getUserId())
+                .mealType(mealType)
+                .mealDate(new java.sql.Date(mealDate.getTime()))
+                .createdAt(new Timestamp(System.currentTimeMillis()))
+                .totalCalories(totals.calories)
+                .totalProtein(totals.protein)
+                .totalCarbs(totals.carbs)
+                .totalFats(totals.fats)
+                .totalFiber(totals.fiber)
+                .totalSodium(totals.sodium)
+                .totalSugars(totals.sugars)
+                .totalSaturatedFats(totals.saturatedFats)
+                .totalIron(totals.iron)
+                .totalCalcium(totals.calcium)
+                .totalVitaminA(totals.vitaminA)
+                .totalVitaminB(totals.vitaminB)
+                .totalVitaminC(totals.vitaminC)
+                .totalVitaminD(totals.vitaminD)
+                .build();
             
             int mealId = mealDAO.saveMeal(meal);
             if (mealId != -1) {

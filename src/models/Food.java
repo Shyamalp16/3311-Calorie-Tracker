@@ -24,31 +24,7 @@ public class Food {
     private String foodSource;
     private Map<String, Double> nutrients;
 
-    public Food(int foodID, String foodDescription, double calories, double protein, double carbs, double fats, double fiber, double sodium, double sugars, double saturatedFats, double iron, double calcium, double vitaminA, double vitaminB, double vitaminC, double vitaminD) {
-        this(foodID, foodDescription, calories, protein, carbs, fats, fiber, sodium, sugars, saturatedFats, iron, calcium, vitaminA, vitaminB, vitaminC, vitaminD, "Unknown", "Unknown", new HashMap<>());
-    }
-
-    public Food(int foodID, String foodDescription, double calories, double protein, double carbs, double fats, double fiber, double sodium, double sugars, double saturatedFats, double iron, double calcium, double vitaminA, double vitaminB, double vitaminC, double vitaminD, String foodGroup, String foodSource, Map<String, Double> nutrients) {
-        this.foodID = foodID;
-        this.foodDescription = foodDescription;
-        this.calories = calories;
-        this.protein = protein;
-        this.carbs = carbs;
-        this.fats = fats;
-        this.fiber = fiber;
-        this.sodium = sodium;
-        this.sugars = sugars;
-        this.saturatedFats = saturatedFats;
-        this.iron = iron;
-        this.calcium = calcium;
-        this.vitaminA = vitaminA;
-        this.vitaminB = vitaminB;
-        this.vitaminC = vitaminC;
-        this.vitaminD = vitaminD;
-        this.foodGroup = foodGroup;
-        this.foodSource = foodSource;
-        this.nutrients = nutrients;
-    }
+    public Food() {}
 
     private Food(Builder builder) {
         this.foodID = builder.foodID;
@@ -349,11 +325,11 @@ public class Food {
             return this;
         }
 
-//        public Food build() {
-//            if (calories == 0.0 && (protein > 0 || carbs > 0 || fats > 0)) {
-//                calories = (protein * 4) + (carbs * 4) + (fats * 9);
-//            }
-//            return new Food(this);
-//        }
+        public Food build() {
+            if (calories == 0.0 && (protein > 0 || carbs > 0 || fats > 0)) {
+                calories = (protein * 4) + (carbs * 4) + (fats * 9);
+            }
+            return new Food(this);
+        }
     }
 }

@@ -71,27 +71,27 @@ public class MealDAO extends AbstractDAO<Meal> {
             pstmt.setInt(1, mealId);
             ResultSet rs = pstmt.executeQuery();
             while (rs.next()) {
-                mealItems.add(new MealItem(
-                    rs.getInt("item_id"),
-                    rs.getInt("meal_id"),
-                    rs.getInt("food_id"),
-                    rs.getDouble("quantity"),
-                    rs.getString("unit"),
-                    rs.getDouble("calories"),
-                    rs.getDouble("protein"),
-                    rs.getDouble("carbs"),
-                    rs.getDouble("fats"),
-                    rs.getDouble("fiber"),
-                    rs.getDouble("sodium"),
-                    rs.getDouble("sugars"),
-                    rs.getDouble("saturated_fats"),
-                    rs.getDouble("iron"),
-                    rs.getDouble("calcium"),
-                    rs.getDouble("vitaminA"),
-                    rs.getDouble("vitaminB"),
-                    rs.getDouble("vitaminC"),
-                    rs.getDouble("vitaminD")
-                ));
+                mealItems.add(new MealItem.Builder()
+                    .itemId(rs.getInt("item_id"))
+                    .mealId(rs.getInt("meal_id"))
+                    .foodId(rs.getInt("food_id"))
+                    .quantity(rs.getDouble("quantity"))
+                    .unit(rs.getString("unit"))
+                    .calories(rs.getDouble("calories"))
+                    .protein(rs.getDouble("protein"))
+                    .carbs(rs.getDouble("carbs"))
+                    .fats(rs.getDouble("fats"))
+                    .fiber(rs.getDouble("fiber"))
+                    .sodium(rs.getDouble("sodium"))
+                    .sugars(rs.getDouble("sugars"))
+                    .saturatedFats(rs.getDouble("saturated_fats"))
+                    .iron(rs.getDouble("iron"))
+                    .calcium(rs.getDouble("calcium"))
+                    .vitaminA(rs.getDouble("vitaminA"))
+                    .vitaminB(rs.getDouble("vitaminB"))
+                    .vitaminC(rs.getDouble("vitaminC"))
+                    .vitaminD(rs.getDouble("vitaminD"))
+                    .build());
             }
         } catch (SQLException e) {
             handleSQLException(e, sql);
@@ -177,26 +177,26 @@ public class MealDAO extends AbstractDAO<Meal> {
 
     @Override
     protected Meal parseResultSet(ResultSet rs) throws SQLException {
-        return new Meal(
-            rs.getInt("meal_id"),
-            rs.getInt("user_id"),
-            rs.getString("meal_type"),
-            rs.getDate("meal_date"),
-            rs.getTimestamp("created_at"),
-            rs.getDouble("total_calories"),
-            rs.getDouble("total_protein"),
-            rs.getDouble("total_carbs"),
-            rs.getDouble("total_fat"),
-            rs.getDouble("total_fiber"),
-            rs.getDouble("total_sodium"),
-            rs.getDouble("total_sugars"),
-            rs.getDouble("total_saturated_fats"),
-            rs.getDouble("total_iron"),
-            rs.getDouble("total_calcium"),
-            rs.getDouble("total_vitaminA"),
-            rs.getDouble("total_vitaminB"),
-            rs.getDouble("total_vitaminC"),
-            rs.getDouble("total_vitaminD")
-        );
+        return new Meal.Builder()
+            .mealId(rs.getInt("meal_id"))
+            .userId(rs.getInt("user_id"))
+            .mealType(rs.getString("meal_type"))
+            .mealDate(rs.getDate("meal_date"))
+            .createdAt(rs.getTimestamp("created_at"))
+            .totalCalories(rs.getDouble("total_calories"))
+            .totalProtein(rs.getDouble("total_protein"))
+            .totalCarbs(rs.getDouble("total_carbs"))
+            .totalFats(rs.getDouble("total_fat"))
+            .totalFiber(rs.getDouble("total_fiber"))
+            .totalSodium(rs.getDouble("total_sodium"))
+            .totalSugars(rs.getDouble("total_sugars"))
+            .totalSaturatedFats(rs.getDouble("total_saturated_fats"))
+            .totalIron(rs.getDouble("total_iron"))
+            .totalCalcium(rs.getDouble("total_calcium"))
+            .totalVitaminA(rs.getDouble("total_vitaminA"))
+            .totalVitaminB(rs.getDouble("total_vitaminB"))
+            .totalVitaminC(rs.getDouble("total_vitaminC"))
+            .totalVitaminD(rs.getDouble("total_vitaminD"))
+            .build();
     }
 }

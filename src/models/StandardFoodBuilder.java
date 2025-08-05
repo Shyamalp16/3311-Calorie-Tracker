@@ -12,7 +12,7 @@ public class StandardFoodBuilder implements FoodBuilder {
 
     @Override
     public void reset() {
-        this.food = new Food(0, "", 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+        this.food = new Food.Builder().build();
     }
 
     @Override

@@ -244,37 +244,31 @@ public class FoodDAO extends AbstractDAO<Food> {
 
     @Override
     protected Food parseResultSet(ResultSet rs) throws SQLException {
-        double calories = rs.getDouble("calories");
-        double protein = rs.getDouble("protein");
-        double carbs = rs.getDouble("carbs");
-        double fats = rs.getDouble("fats");
-        double fiber = rs.getDouble("fiber");
-        double sodium = rs.getDouble("sodium");
-        double sugars = rs.getDouble("sugars");
-        double saturated_fats = rs.getDouble("saturated_fats");
-        double iron = rs.getDouble("iron");
-        double calcium = rs.getDouble("calcium");
-        double vitaminA = rs.getDouble("vitaminA");
-        double vitaminB = rs.getDouble("vitaminB");
-        double vitaminC = rs.getDouble("vitaminC");
-        double vitaminD = rs.getDouble("vitaminD");
+        Food.Builder builder = new Food.Builder()
+            .id(rs.getInt("FoodID"))
+            .description(rs.getString("FoodDescription"))
+            .calories(rs.getDouble("calories"))
+            .protein(rs.getDouble("protein"))
+            .carbs(rs.getDouble("carbs"))
+            .fats(rs.getDouble("fats"))
+            .fiber(rs.getDouble("fiber"))
+            .sodium(rs.getDouble("sodium"))
+            .sugars(rs.getDouble("sugars"))
+            .saturatedFats(rs.getDouble("saturated_fats"))
+            .iron(rs.getDouble("iron"))
+            .calcium(rs.getDouble("calcium"))
+            .vitaminA(rs.getDouble("vitaminA"))
+            .vitaminB(rs.getDouble("vitaminB"))
+            .vitaminC(rs.getDouble("vitaminC"))
+            .vitaminD(rs.getDouble("vitaminD"));
 
-        FoodDirector director = new FoodDirector(new StandardFoodBuilder());
-        
-        String foodGroup = "Unknown";
-        String foodSource = "Unknown";
         try {
-            foodGroup = rs.getString("FoodGroupName");
-            foodSource = rs.getString("FoodSourceDescription");
+            builder.foodGroup(rs.getString("FoodGroupName"));
+            builder.foodSource(rs.getString("FoodSourceDescription"));
         } catch (SQLException ignored) {
+            // Ignore if these columns are not present in all queries
         }
-        
-        return director.constructCompleteFoodFromDatabase(
-            rs.getInt("FoodID"),
-            rs.getString("FoodDescription"),
-            calories, protein, carbs, fats, fiber, sodium, sugars,
-            saturated_fats, iron, calcium, vitaminA, vitaminB,
-            vitaminC, vitaminD, foodGroup, foodSource
-        );
+
+        return builder.build();
     }
 }

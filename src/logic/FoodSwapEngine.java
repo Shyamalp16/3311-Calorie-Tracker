@@ -362,7 +362,6 @@ public class FoodSwapEngine {
         return preservationScore;
     }
     
-    // Part of the shotgun surgery smell. Some getters are here...
     private double getFiberValue(Food food) {
         return food.getFiber();
     }

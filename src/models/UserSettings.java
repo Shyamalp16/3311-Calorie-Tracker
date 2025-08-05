@@ -14,6 +14,7 @@ public class UserSettings {
     private boolean enableNotifications;
     private String dateFormat;
     private int dailyGoalCalories;
+    private boolean precisionMode; 
     private Timestamp lastUpdated;
     
     public UserSettings() {
@@ -22,6 +23,7 @@ public class UserSettings {
         this.enableNotifications = true;
         this.dateFormat = "yyyy-MM-dd";
         this.dailyGoalCalories = 2000;
+        this.precisionMode = false; // Default to standard precision
     }
     
     public UserSettings(int userId, UnitSystem unitSystem) {
@@ -32,7 +34,7 @@ public class UserSettings {
     
     public UserSettings(int settingsId, int userId, UnitSystem unitSystem, String theme, 
                        boolean enableNotifications, String dateFormat, int dailyGoalCalories, 
-                       Timestamp lastUpdated) {
+                       boolean precisionMode, Timestamp lastUpdated) { 
         this.settingsId = settingsId;
         this.userId = userId;
         this.unitSystem = unitSystem;
@@ -40,6 +42,7 @@ public class UserSettings {
         this.enableNotifications = enableNotifications;
         this.dateFormat = dateFormat;
         this.dailyGoalCalories = dailyGoalCalories;
+        this.precisionMode = precisionMode;
         this.lastUpdated = lastUpdated;
     }
     
@@ -63,6 +66,9 @@ public class UserSettings {
     
     public int getDailyGoalCalories() { return dailyGoalCalories; }
     public void setDailyGoalCalories(int dailyGoalCalories) { this.dailyGoalCalories = dailyGoalCalories; }
+
+    public boolean isPrecisionMode() { return precisionMode; }
+    public void setPrecisionMode(boolean precisionMode) { this.precisionMode = precisionMode; }
     
     public Timestamp getLastUpdated() { return lastUpdated; }
     public void setLastUpdated(Timestamp lastUpdated) { this.lastUpdated = lastUpdated; }
@@ -150,7 +156,7 @@ public class UserSettings {
      * Format liquid volume for display using current unit system
      */
     public String formatLiquidVolume(double volumeInMl) {
-        return unitSystem.formatLiquidVolume(volumeInMl);
+        return unitSystem.formatLiquidVolume(volumeInMl, this.precisionMode);
     }
     
     @Override

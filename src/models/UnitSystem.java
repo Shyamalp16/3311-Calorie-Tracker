@@ -204,13 +204,18 @@ public enum UnitSystem {
     }
     
     /**
-     * Format liquid volume for display based on unit system
+     * Format liquid volume for display based on unit system.
+     * NOTE: This is part of a "Shotgun Surgery" code smell.
+     * The precision logic is intentionally split between here and UnitPrecisionHelper.
      */
-    public String formatLiquidVolume(double valueInMl) {
+    public String formatLiquidVolume(double valueInMl, boolean isPrecision) {
         if (this == METRIC) {
             return String.format("%.0f ml", valueInMl);
         } else {
             double flOz = mlToFluidOunces(valueInMl);
+            if (isPrecision) {
+                return String.format("%.3f fl oz", flOz);
+            }
             return String.format("%.1f fl oz", flOz);
         }
     }

@@ -188,23 +188,7 @@ public class MealController implements IMealController {
      * Calculate totals for a list of meal items
      */
     private MealTotals calculateMealTotals(List<MealItem> mealItems) {
-        double calories = mealItems.stream().mapToDouble(MealItem::getCalories).sum();
-        double protein = mealItems.stream().mapToDouble(MealItem::getProtein).sum();
-        double carbs = mealItems.stream().mapToDouble(MealItem::getCarbs).sum();
-        double fats = mealItems.stream().mapToDouble(MealItem::getFats).sum();
-        double fiber = mealItems.stream().mapToDouble(MealItem::getFiber).sum();
-        double sodium = mealItems.stream().mapToDouble(MealItem::getSodium).sum();
-        double sugars = mealItems.stream().mapToDouble(MealItem::getSugars).sum();
-        double saturatedFats = mealItems.stream().mapToDouble(MealItem::getSaturatedFats).sum();
-        double iron = mealItems.stream().mapToDouble(MealItem::getIron).sum();
-        double calcium = mealItems.stream().mapToDouble(MealItem::getCalcium).sum();
-        double vitaminA = mealItems.stream().mapToDouble(MealItem::getVitaminA).sum();
-        double vitaminB = mealItems.stream().mapToDouble(MealItem::getVitaminB).sum();
-        double vitaminC = mealItems.stream().mapToDouble(MealItem::getVitaminC).sum();
-        double vitaminD = mealItems.stream().mapToDouble(MealItem::getVitaminD).sum();
-        
-        return new MealTotals(calories, protein, carbs, fats, fiber, sodium, sugars, 
-                            saturatedFats, iron, calcium, vitaminA, vitaminB, vitaminC, vitaminD);
+        return new MealTotals(mealItems);
     }
     
     /**
@@ -240,14 +224,21 @@ public class MealController implements IMealController {
         final double calories, protein, carbs, fats, fiber, sodium, sugars, saturatedFats;
         final double iron, calcium, vitaminA, vitaminB, vitaminC, vitaminD;
         
-        MealTotals(double calories, double protein, double carbs, double fats, double fiber,
-                  double sodium, double sugars, double saturatedFats, double iron, double calcium,
-                  double vitaminA, double vitaminB, double vitaminC, double vitaminD) {
-            this.calories = calories; this.protein = protein; this.carbs = carbs;
-            this.fats = fats; this.fiber = fiber; this.sodium = sodium; this.sugars = sugars;
-            this.saturatedFats = saturatedFats; this.iron = iron; this.calcium = calcium;
-            this.vitaminA = vitaminA; this.vitaminB = vitaminB; this.vitaminC = vitaminC;
-            this.vitaminD = vitaminD;
+        MealTotals(List<MealItem> mealItems) {
+            this.calories = mealItems.stream().mapToDouble(MealItem::getCalories).sum();
+            this.protein = mealItems.stream().mapToDouble(MealItem::getProtein).sum();
+            this.carbs = mealItems.stream().mapToDouble(MealItem::getCarbs).sum();
+            this.fats = mealItems.stream().mapToDouble(MealItem::getFats).sum();
+            this.fiber = mealItems.stream().mapToDouble(MealItem::getFiber).sum();
+            this.sodium = mealItems.stream().mapToDouble(MealItem::getSodium).sum();
+            this.sugars = mealItems.stream().mapToDouble(MealItem::getSugars).sum();
+            this.saturatedFats = mealItems.stream().mapToDouble(MealItem::getSaturatedFats).sum();
+            this.iron = mealItems.stream().mapToDouble(MealItem::getIron).sum();
+            this.calcium = mealItems.stream().mapToDouble(MealItem::getCalcium).sum();
+            this.vitaminA = mealItems.stream().mapToDouble(MealItem::getVitaminA).sum();
+            this.vitaminB = mealItems.stream().mapToDouble(MealItem::getVitaminB).sum();
+            this.vitaminC = mealItems.stream().mapToDouble(MealItem::getVitaminC).sum();
+            this.vitaminD = mealItems.stream().mapToDouble(MealItem::getVitaminD).sum();
         }
     }
     

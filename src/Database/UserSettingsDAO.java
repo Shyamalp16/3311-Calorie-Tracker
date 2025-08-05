@@ -33,8 +33,8 @@ public class UserSettingsDAO extends AbstractDAO<UserSettings> {
     private UserSettings createSettings(UserSettings settings) {
         String sql = """
             INSERT INTO user_settings (user_id, unit_system, theme, enable_notifications, 
-                                     date_format, daily_goal_calories, last_updated) 
-            VALUES (?, ?, ?, ?, ?, ?, NOW())
+                                     date_format, daily_goal_calories, precision_mode, last_updated) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
             """;
         
         try (var conn = DatabaseConnector.getInstance().getConnection();
@@ -42,7 +42,8 @@ public class UserSettingsDAO extends AbstractDAO<UserSettings> {
             
             setParameters(stmt, settings.getUserId(), settings.getUnitSystem().name(), 
                          settings.getTheme(), settings.isEnableNotifications(),
-                         settings.getDateFormat(), settings.getDailyGoalCalories());
+                         settings.getDateFormat(), settings.getDailyGoalCalories(),
+                         settings.isPrecisionMode());
             
             int rowsAffected = stmt.executeUpdate();
             
@@ -69,13 +70,14 @@ public class UserSettingsDAO extends AbstractDAO<UserSettings> {
         String sql = """
             UPDATE user_settings 
             SET unit_system = ?, theme = ?, enable_notifications = ?, 
-                date_format = ?, daily_goal_calories = ?, last_updated = NOW()
+                date_format = ?, daily_goal_calories = ?, precision_mode = ?, last_updated = NOW()
             WHERE user_id = ?
             """;
         
         int rowsAffected = update(sql, settings.getUnitSystem().name(), settings.getTheme(),
                                  settings.isEnableNotifications(), settings.getDateFormat(),
-                                 settings.getDailyGoalCalories(), settings.getUserId());
+                                 settings.getDailyGoalCalories(), settings.isPrecisionMode(), 
+                                 settings.getUserId());
         
         if (rowsAffected > 0) {
             return settings;
@@ -136,6 +138,7 @@ public class UserSettingsDAO extends AbstractDAO<UserSettings> {
                 enable_notifications BOOLEAN DEFAULT TRUE,
                 date_format VARCHAR(20) DEFAULT 'yyyy-MM-dd',
                 daily_goal_calories INT DEFAULT 2000,
+                precision_mode BOOLEAN DEFAULT FALSE,
                 last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
                 INDEX idx_user_settings (user_id)
@@ -174,6 +177,7 @@ public class UserSettingsDAO extends AbstractDAO<UserSettings> {
         settings.setEnableNotifications(rs.getBoolean("enable_notifications"));
         settings.setDateFormat(rs.getString("date_format"));
         settings.setDailyGoalCalories(rs.getInt("daily_goal_calories"));
+        settings.setPrecisionMode(rs.getBoolean("precision_mode"));
         settings.setLastUpdated(rs.getTimestamp("last_updated"));
         
         return settings;

@@ -106,7 +106,7 @@ public class UserSettings {
      */
     public String formatHeight(double heightInCm) {
         double displayValue = convertHeightForDisplay(heightInCm);
-        return unitSystem.formatHeight(displayValue);
+        return unitSystem.formatHeight(displayValue, this.precisionMode);
     }
     
     /**
@@ -114,7 +114,7 @@ public class UserSettings {
      */
     public String formatWeight(double weightInKg) {
         double displayValue = convertWeightForDisplay(weightInKg);
-        return unitSystem.formatWeight(displayValue);
+        return unitSystem.formatWeight(displayValue, this.precisionMode);
     }
     
     /**

@@ -82,26 +82,26 @@ public enum UnitSystem {
     }
     
     /**
-     * Format height for display based on unit system
+     * Format height for display based on unit system and precision.
      */
-    public String formatHeight(double value) {
+    public String formatHeight(double value, boolean isPrecision) {
         if (this == METRIC) {
-            return String.format("%.1f cm", value);
+            return String.format(isPrecision ? "%.2f cm" : "%.1f cm", value);
         } else {
             int feet = (int) value;
             double remainingInches = (value - feet) * 12;
-            return String.format("%d'%.1f\"", feet, remainingInches);
+            return String.format(isPrecision ? "%d'%.2f\"" : "%d'%.1f\"", feet, remainingInches);
         }
     }
     
     /**
-     * Format weight for display based on unit system
+     * Format weight for display based on unit system and precision.
      */
-    public String formatWeight(double value) {
+    public String formatWeight(double value, boolean isPrecision) {
         if (this == METRIC) {
-            return String.format("%.1f kg", value);
+            return String.format(isPrecision ? "%.3f kg" : "%.1f kg", value);
         } else {
-            return String.format("%.1f lbs", value);
+            return String.format(isPrecision ? "%.3f lbs" : "%.1f lbs", value);
         }
     }
     

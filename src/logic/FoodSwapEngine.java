@@ -2,8 +2,10 @@ package logic;
 
 import Database.FoodDAO;
 import models.*;
+import utils.NutrientHelper;
 import java.util.*;
 import java.util.stream.Collectors;
+
 
 public class FoodSwapEngine {
     
@@ -141,24 +143,14 @@ public class FoodSwapEngine {
                                                                   Set<Integer> excludedRecIds,
                                                                   String mealType) {
         
-        List<Food> candidates = foodDAO.findSimilarFoodsByGroup(originalFood.getFoodID(), 50);
-        
-        for (FoodSwapGoal goal : goals) {
-            List<Food> nutrientCandidates = findCandidatesByNutrientGoal(originalFood, goal);
-            for (Food candidate : nutrientCandidates) {
-                if (!candidates.contains(candidate)) {
-                    candidates.add(candidate);
-                }
-            }
-        }
-        
+        List<Food> candidates = gatherSwapCandidates(originalFood, goals);
         
         Food bestCandidate = null;
         double bestScore = -1;
         String bestReason = "";
         
         for (Food candidate : candidates) {
-            if (excludedRecIds.contains(candidate.getFoodID())) {
+            if (excludedRecIds.contains(candidate.getFoodID()) || candidate.getFoodID() == originalFood.getFoodID()) {
                 continue;
             }
 
@@ -170,7 +162,6 @@ public class FoodSwapEngine {
                 bestReason = score.reason;
             }
         }
-        
         
         if (bestCandidate != null) {
             return new FoodSwapRecommendation(originalFood, bestCandidate, 
@@ -230,13 +221,28 @@ public class FoodSwapEngine {
     
     private List<Food> findCandidatesByNutrientGoal(Food originalFood, FoodSwapGoal goal) {
         List<Food> candidates = new ArrayList<>();
-        
-        double originalValue = getNutrientValue(originalFood, goal.getNutrientType());
+        double originalValue = 0;
+        switch (goal.getNutrientType()) {
+            case INCREASE_FIBER:
+                originalValue = getFiberValue(originalFood);
+                break;
+            case REDUCE_CALORIES:
+                originalValue = getCaloriesValue(originalFood);
+                break;
+            case INCREASE_PROTEIN:
+                originalValue = NutrientHelper.getProteinValue(originalFood);
+                break;
+            case REDUCE_FAT:
+                originalValue = NutrientHelper.getFatValue(originalFood);
+                break;
+            case REDUCE_CARBS:
+            case INCREASE_CARBS:
+                originalValue = NutrientHelper.getCarbsValue(originalFood);
+                break;
+        }
         double targetValue = calculateTargetValue(originalValue, goal);
-        
         double searchMin = Math.min(originalValue * 0.5, targetValue * 0.8);
         double searchMax = Math.max(originalValue * 2.0, targetValue * 1.5);
-        
         String nutrientType = goal.getNutrientType().name().toLowerCase();
         if (nutrientType.contains("fiber")) {
             candidates.addAll(foodDAO.findFoodsByNutrientRange("fiber", searchMin, searchMax, 30));
@@ -249,7 +255,6 @@ public class FoodSwapEngine {
         } else if (nutrientType.contains("carb")) {
             candidates.addAll(foodDAO.findFoodsByNutrientRange("carbs", searchMin, searchMax, 30));
         }
-        
         return candidates;
     }
     
@@ -294,10 +299,32 @@ public class FoodSwapEngine {
     }
 
     private boolean processGoal(FoodSwapGoal goal, Food original, Food candidate, SwapScore score, StringBuilder reasonBuilder) {
-        double originalValue = getNutrientValue(original, goal.getNutrientType());
-        double candidateValue = getNutrientValue(candidate, goal.getNutrientType());
+        double originalValue = 0;
+        double candidateValue = 0;
+        switch (goal.getNutrientType()) {
+            case INCREASE_FIBER:
+                originalValue = getFiberValue(original);
+                candidateValue = getFiberValue(candidate);
+                break;
+            case REDUCE_CALORIES:
+                originalValue = getCaloriesValue(original);
+                candidateValue = getCaloriesValue(candidate);
+                break;
+            case INCREASE_PROTEIN:
+                originalValue = NutrientHelper.getProteinValue(original);
+                candidateValue = NutrientHelper.getProteinValue(candidate);
+                break;
+            case REDUCE_FAT:
+                originalValue = NutrientHelper.getFatValue(original);
+                candidateValue = NutrientHelper.getFatValue(candidate);
+                break;
+            case REDUCE_CARBS:
+            case INCREASE_CARBS:
+                originalValue = NutrientHelper.getCarbsValue(original);
+                candidateValue = NutrientHelper.getCarbsValue(candidate);
+                break;
+        }
         boolean goalMet = false;
-
         if (goal.isIncrease() && candidateValue > originalValue) {
             goalMet = true;
             updateScoreForIncrease(score, originalValue, candidateValue, goal, reasonBuilder);
@@ -305,7 +332,6 @@ public class FoodSwapEngine {
             goalMet = true;
             updateScoreForDecrease(score, originalValue, candidateValue, goal, reasonBuilder);
         }
-
         return goalMet;
     }
 
@@ -336,14 +362,13 @@ public class FoodSwapEngine {
         return preservationScore;
     }
     
-    private double getNutrientValue(Food food, FoodSwapGoal.NutrientType nutrientType) {
-        return switch (nutrientType) {
-            case INCREASE_FIBER -> food.getFiber();
-            case REDUCE_CALORIES -> food.getCalories();
-            case INCREASE_PROTEIN -> food.getProtein();
-            case REDUCE_FAT -> food.getFats();
-            case REDUCE_CARBS, INCREASE_CARBS -> food.getCarbs();
-        };
+    // Part of the shotgun surgery smell. Some getters are here...
+    private double getFiberValue(Food food) {
+        return food.getFiber();
+    }
+
+    private double getCaloriesValue(Food food) {
+        return food.getCalories();
     }
     
     private static class SwapScore {

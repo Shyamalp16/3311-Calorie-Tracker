@@ -39,47 +39,63 @@ public class PieChart implements Chart {
 
     private DefaultPieDataset createPieDataset(Map<String, Double> data) {
         DefaultPieDataset dataset = new DefaultPieDataset();
-        
-        
-        boolean isCFGData = data.keySet().stream().anyMatch(key -> 
-            key.equals("Vegetables & Fruits") || key.equals("Whole Grains") || 
-            key.equals("Protein Foods") || key.equals("Dairy & Alternatives"));
-        
-        
-        if (data.isEmpty() || data.values().stream().allMatch(v -> v == 0)) {
+
+        if (isDataEmpty(data)) {
             dataset.setValue("No data", 1);
-        } else if (isCFGData) {
-            for (Map.Entry<String, Double> entry : data.entrySet()) {
-                if (entry.getValue() > 0) {
-                    dataset.setValue(entry.getKey(), entry.getValue());
-                }
-            }
-            if (dataset.getItemCount() == 0) {
-                dataset.setValue("No data consumed", 1);
-            }
+            return dataset;
+        }
+
+        if (isCFGData(data)) {
+            populateCFGDataset(dataset, data);
         } else {
-            double othersValue = 0;
-            double vitaminsValue = 0;
-            for (Map.Entry<String, Double> entry : data.entrySet()) {
-                String key = entry.getKey();
-                if (MAIN_MACROS.contains(key)) {
-                    dataset.setValue(key, entry.getValue());
-                } else if (VITAMINS.contains(key)) {
-                    vitaminsValue += entry.getValue();
-                } else {
-                    othersValue += entry.getValue();
-                }
-            }
-            if (vitaminsValue > 0) {
-                dataset.setValue("Vitamins", vitaminsValue);
-            }
-            if (othersValue > 0) {
-                dataset.setValue("Others", othersValue);
+            populateMacrosAndVitaminsDataset(dataset, data);
+        }
+
+        return dataset;
+    }
+
+    private boolean isDataEmpty(Map<String, Double> data) {
+        return data.isEmpty() || data.values().stream().allMatch(v -> v == 0);
+    }
+
+    private boolean isCFGData(Map<String, Double> data) {
+        return data.keySet().stream().anyMatch(key ->
+            key.equals("Vegetables & Fruits") || key.equals("Whole Grains") ||
+            key.equals("Protein Foods") || key.equals("Dairy & Alternatives"));
+    }
+
+    private void populateCFGDataset(DefaultPieDataset dataset, Map<String, Double> data) {
+        for (Map.Entry<String, Double> entry : data.entrySet()) {
+            if (entry.getValue() > 0) {
+                dataset.setValue(entry.getKey(), entry.getValue());
             }
         }
-        
-        
-        return dataset;
+        if (dataset.getItemCount() == 0) {
+            dataset.setValue("No data consumed", 1);
+        }
+    }
+
+    private void populateMacrosAndVitaminsDataset(DefaultPieDataset dataset, Map<String, Double> data) {
+        double othersValue = 0;
+        double vitaminsValue = 0;
+
+        for (Map.Entry<String, Double> entry : data.entrySet()) {
+            String key = entry.getKey();
+            if (MAIN_MACROS.contains(key)) {
+                dataset.setValue(key, entry.getValue());
+            } else if (VITAMINS.contains(key)) {
+                vitaminsValue += entry.getValue();
+            } else {
+                othersValue += entry.getValue();
+            }
+        }
+
+        if (vitaminsValue > 0) {
+            dataset.setValue("Vitamins", vitaminsValue);
+        }
+        if (othersValue > 0) {
+            dataset.setValue("Others", othersValue);
+        }
     }
 
     private void stylePieChart() {

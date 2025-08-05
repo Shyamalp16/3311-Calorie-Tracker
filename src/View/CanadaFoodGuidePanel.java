@@ -195,14 +195,11 @@ public class CanadaFoodGuidePanel extends JPanel {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
         panel.setBackground(Color.WHITE);
         panel.setBorder(BorderFactory.createEmptyBorder(15, 0, 0, 0));
-
         JLabel titleLabel = new JLabel("CFG Compliance Recommendations");
         titleLabel.setFont(FONT_NORMAL.deriveFont(Font.BOLD));
         titleLabel.setHorizontalAlignment(JLabel.CENTER);
         panel.add(titleLabel, BorderLayout.NORTH);
-
         String recommendations = nutritionFacade.generateCFGRecommendations(timePeriod);
-        
         JTextArea recommendationsArea = new JTextArea(recommendations);
         recommendationsArea.setFont(FONT_NORMAL);
         recommendationsArea.setBackground(new Color(248, 248, 248));
@@ -211,17 +208,13 @@ public class CanadaFoodGuidePanel extends JPanel {
         recommendationsArea.setLineWrap(true);
         recommendationsArea.setWrapStyleWord(true);
         recommendationsArea.setRows(4);
-        
         JScrollPane scrollPane = new JScrollPane(recommendationsArea);
         scrollPane.setPreferredSize(new java.awt.Dimension(600, 100));
         scrollPane.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
-        
         JPanel centerPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         centerPanel.setBackground(Color.WHITE);
         centerPanel.add(scrollPane);
-        
         panel.add(centerPanel, BorderLayout.CENTER);
-        
         return panel;
     }
 
@@ -251,8 +244,6 @@ public class CanadaFoodGuidePanel extends JPanel {
         if (component instanceof JComboBox) {
             @SuppressWarnings("unchecked")
             JComboBox<String> comboBox = (JComboBox<String>) component;
-            // Assuming this is the correct combo box based on its string type.
-            // A more robust solution might involve setting a name or action command.
             if (comboBox.getModel().getElementAt(0) instanceof String) {
                 return comboBox;
             }

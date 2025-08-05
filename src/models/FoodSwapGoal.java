@@ -74,6 +74,19 @@ public class FoodSwapGoal {
     public void setSpecificValue(Double specificValue) { this.specificValue = specificValue; }
     public void setSpecificPercentage(Double specificPercentage) { this.specificPercentage = specificPercentage; }
 
+    public int getPriority() {
+        switch (this.intensityLevel) {
+            case SLIGHTLY_MORE:
+                return 1;
+            case MODERATELY_MORE:
+                return 2;
+            case SIGNIFICANTLY_MORE:
+                return 3;
+            default:
+                return 0; // Default priority
+        }
+    }
+
     public boolean isIncrease() {
         return nutrientType == NutrientType.INCREASE_FIBER || 
                nutrientType == NutrientType.INCREASE_PROTEIN ||

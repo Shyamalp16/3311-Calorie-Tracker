@@ -188,6 +188,98 @@ public class DashboardController {
             default: return 7;
         }
     }
+
+    public String getDetailedRecommendation(String timePeriod) {
+        NutritionAnalysisData analysisData = getNutritionAnalysis(timePeriod);
+        return RecommendationGenerator.generate(timePeriod, analysisData);
+    }
+
+    private static class RecommendationGenerator {
+        private static final Map<String, java.util.function.Function<NutritionAnalysisData, String>> recommendationStrategies = new HashMap<>();
+
+        static {
+            recommendationStrategies.put("7 Days", RecommendationGenerator::getWeeklyRecommendation);
+            recommendationStrategies.put("30 Days", RecommendationGenerator::getMonthlyRecommendation);
+            recommendationStrategies.put("90 Days", RecommendationGenerator::getQuarterlyRecommendation);
+        }
+
+        public static String generate(String timePeriod, NutritionAnalysisData analysisData) {
+            return recommendationStrategies.getOrDefault(timePeriod, (data) -> "Please select a valid time period for a detailed recommendation.")
+                                           .apply(analysisData);
+        }
+
+        private static String getWeeklyRecommendation(NutritionAnalysisData analysisData) {
+            NutritionSummary avgNutrition = analysisData.averageNutrition;
+            Goal userGoals = analysisData.userGoals;
+            StringBuilder recommendation = new StringBuilder("Weekly Review:\n");
+
+            if (avgNutrition.totalCalories > userGoals.getCalories() + 100) {
+                recommendation.append("- Your average calorie intake is high. Consider smaller portions.\n");
+            } else if (avgNutrition.totalCalories < userGoals.getCalories() - 100) {
+                recommendation.append("- Your average calorie intake is low. Ensure you're eating enough.\n");
+            } else {
+                recommendation.append("- Great job on maintaining your calorie goals this week!\n");
+            }
+            if (avgNutrition.totalProtein < userGoals.getProtein() * 0.8) {
+                recommendation.append("- Protein intake is a bit low. Try adding lean meats or legumes.\n");
+            }
+            recommendation.append("- Sugar intake seems acceptable. Keep monitoring it.\n");
+            recommendation.append("- You're doing well with your fat intake.\n");
+            recommendation.append("- Fiber levels are good, keep it up!\n");
+            recommendation.append("- Sodium is within a reasonable range.\n");
+            recommendation.append("- Remember to drink plenty of water.\n");
+            return recommendation.toString();
+        }
+
+        private static String getMonthlyRecommendation(NutritionAnalysisData analysisData) {
+            NutritionSummary avgNutrition = analysisData.averageNutrition;
+            Goal userGoals = analysisData.userGoals;
+            StringBuilder recommendation = new StringBuilder("Monthly Analysis:\n");
+            double calorieDiff = avgNutrition.totalCalories - userGoals.getCalories();
+
+            if (Math.abs(calorieDiff) > 200) {
+                recommendation.append(String.format("- Calorie mismatch of %.0f calories detected. Re-evaluate your meal plan.\n", calorieDiff));
+            } else {
+                recommendation.append("- Consistent calorie management over the past month. Excellent!\n");
+            }
+            if (avgNutrition.totalProtein < userGoals.getProtein() * 0.9) {
+                recommendation.append("- Long-term protein intake is slightly below your goal. Consider protein supplements.\n");
+            } else if (avgNutrition.totalProtein > userGoals.getProtein() * 1.2) {
+                recommendation.append("- Protein intake is high. Ensure it's from lean sources.\n");
+            }
+            if (avgNutrition.totalSugars > 50) { // Example threshold
+                recommendation.append("- Average sugar intake is high. Look for hidden sugars in processed foods.\n");
+            }
+            recommendation.append("- Your fat consumption is on point.\n");
+            recommendation.append("- Fiber intake is consistently good.\n");
+            recommendation.append("- Sodium levels are stable.\n");
+            recommendation.append("- Check your vitamin D levels, especially if you have limited sun exposure.\n");
+            recommendation.append("- A 30-day trend is a strong indicator of your dietary habits.\n");
+            return recommendation.toString();
+        }
+
+        private static String getQuarterlyRecommendation(NutritionAnalysisData analysisData) {
+            NutritionSummary avgNutrition = analysisData.averageNutrition;
+            Goal userGoals = analysisData.userGoals;
+            StringBuilder recommendation = new StringBuilder("Quarterly Report:\n");
+
+            if (avgNutrition.totalCalories > userGoals.getCalories()) {
+                recommendation.append("- Over the last 90 days, your calorie intake has been consistently above your goal.\n");
+            } else {
+                recommendation.append("- Over the last 90 days, your calorie intake has been consistently below your goal.\n");
+            }
+            recommendation.append(String.format("- Average Protein: %.1fg, Goal: %.1fg\n", avgNutrition.totalProtein, userGoals.getProtein()));
+            recommendation.append(String.format("- Average Carbs: %.1fg, Goal: %.1fg\n", avgNutrition.totalCarbs, userGoals.getCarbs()));
+            recommendation.append(String.format("- Average Fat: %.1fg, Goal: %.1fg\n", avgNutrition.totalFats, userGoals.getFats()));
+            recommendation.append("- This long-term view is crucial for understanding your health.\n");
+            recommendation.append("- Consider adjusting your goals based on these trends.\n");
+            recommendation.append("- Your dietary patterns are now well-established.\n");
+            recommendation.append("- Look for correlations between your diet and how you feel.\n");
+            recommendation.append("- Are you meeting your micronutrient needs?\n");
+            recommendation.append("- Great dedication to tracking for 90 days!\n");
+            return recommendation.toString();
+        }
+    }
     
     /**
      * Get default goals

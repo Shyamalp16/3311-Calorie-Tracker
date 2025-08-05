@@ -189,57 +189,107 @@ public class CanadaFoodGuideController {
     public String generateCFGRecommendations(String timePeriod) {
         Map<String, Double> userData = calculateUserPlateData(timePeriod);
         StringBuilder recommendations = new StringBuilder();
-        
+
         Map<String, Double> cfgTargets = new HashMap<>();
         cfgTargets.put("Vegetables & Fruits", 50.0);
         cfgTargets.put("Whole Grains", 25.0);
         cfgTargets.put("Protein Foods", 17.5);
         cfgTargets.put("Dairy & Alternatives", 7.5);
-        
+
         boolean hasRecommendations = false;
-        
+
         for (Map.Entry<String, Double> target : cfgTargets.entrySet()) {
             String category = target.getKey();
             double targetPercent = target.getValue();
             double userPercent = userData.getOrDefault(category, 0.0);
             double gap = targetPercent - userPercent;
-            
-            if (Math.abs(gap) > 5.0) { 
+
+            if (Math.abs(gap) > 5.0) {
                 if (hasRecommendations) recommendations.append(" ");
-                
+
                 if (gap > 0) {
                     recommendations.append("• Increase ").append(category.toLowerCase())
                         .append(" by ").append(String.format("%.0f", gap)).append("% ");
-                    
-                    switch (category) {
-                        case "Vegetables & Fruits":
-                            recommendations.append("(add more salads, fruits as snacks, vegetable-based meals)");
-                            break;
-                        case "Whole Grains":
-                            recommendations.append("(choose brown rice, whole wheat bread, oatmeal)");
-                            break;
-                        case "Protein Foods":
-                            recommendations.append("(include lean meats, fish, beans, nuts)");
-                            break;
-                        case "Dairy & Alternatives":
-                            recommendations.append("(add milk, yogurt, cheese, or fortified plant alternatives)");
-                            break;
-                    }
+                    recommendations.append(getDetailedRecommendation(category, true, gap));
                 } else {
                     recommendations.append("• Consider reducing ").append(category.toLowerCase())
                         .append(" by ").append(String.format("%.0f", Math.abs(gap))).append("%");
+                    recommendations.append(getDetailedRecommendation(category, false, gap));
                 }
                 hasRecommendations = true;
             }
         }
-        
+
         if (!hasRecommendations) {
             recommendations.append("🎉 Great job! Your diet aligns well with Canada Food Guide recommendations. ")
                 .append("Keep maintaining this balanced approach to nutrition.");
         } else {
             recommendations.insert(0, "To better align with CFG recommendations: ");
         }
-        
+
         return recommendations.toString();
+    }
+
+    private String getDetailedRecommendation(String category, boolean isIncrease, double gap) {
+        return RecommendationLogic.getRecommendation(category, isIncrease, gap);
+    }
+
+    private static class RecommendationLogic {
+        private static final Map<String, RecommendationFunction> increaseRecommendations = new HashMap<>();
+        private static final Map<String, RecommendationFunction> decreaseRecommendations = new HashMap<>();
+
+        static {
+            increaseRecommendations.put("Vegetables & Fruits", (absGap) -> {
+                if (absGap > 20) return "(Aim to make half your plate vegetables and fruits at every meal. Explore new recipes with diverse produce.)";
+                if (absGap > 10) return "(Incorporate more fruits as snacks and add extra vegetables to your main dishes.)";
+                return "(Try adding one more serving of vegetables or fruit to your daily intake.)";
+            });
+            increaseRecommendations.put("Whole Grains", (absGap) -> {
+                if (absGap > 15) return "(Switch to whole grain options for all breads, pastas, and cereals. Explore quinoa, oats, and brown rice.)";
+                if (absGap > 7) return "(Choose whole grain bread and pasta more often. Opt for whole grain snacks.)";
+                return "(Consider swapping one refined grain serving for a whole grain alternative daily.)";
+            });
+            increaseRecommendations.put("Protein Foods", (absGap) -> {
+                if (absGap > 10) return "(Prioritize plant-based proteins like beans, lentils, and tofu. Include lean meats, fish, and eggs regularly.)";
+                if (absGap > 5) return "(Ensure a good source of protein at each meal. Try adding nuts or seeds to snacks.)";
+                return "(Look for opportunities to add a little more protein, like an extra egg or a handful of almonds.)";
+            });
+            increaseRecommendations.put("Dairy & Alternatives", (absGap) -> {
+                if (absGap > 5) return "(Include milk, yogurt, or fortified plant-based alternatives daily. Consider cheese in moderation.)";
+                return "(Ensure you're meeting your calcium needs through dairy or fortified alternatives.)";
+            });
+
+            decreaseRecommendations.put("Vegetables & Fruits", (absGap) -> {
+                if (absGap > 20) return "(While good, ensure variety and balance with other food groups. You might be over-relying on this group.)";
+                if (absGap > 10) return "(Review your portion sizes for vegetables and fruits to ensure balance across all food groups.)";
+                return "(Slightly adjust portions to make room for other essential nutrients.)";
+            });
+            decreaseRecommendations.put("Whole Grains", (absGap) -> {
+                if (absGap > 15) return "(Evaluate your intake of large portions of grains. Balance with more vegetables and protein.)";
+                if (absGap > 7) return "(Consider reducing portion sizes of grain products slightly to diversify your plate.)";
+                return "(A minor adjustment in grain portions could help balance your overall intake.)";
+            });
+            decreaseRecommendations.put("Protein Foods", (absGap) -> {
+                if (absGap > 10) return "(Ensure you're not consuming excessive amounts of protein, especially from processed sources. Focus on variety.)";
+                if (absGap > 5) return "(Balance your protein intake with ample vegetables and whole grains.)";
+                return "(A small reduction in protein portion size might be beneficial for overall balance.)";
+            });
+            decreaseRecommendations.put("Dairy & Alternatives", (absGap) -> {
+                if (absGap > 5) return "(Review your dairy intake; excessive amounts might displace other important food groups.)";
+                return "(Consider if your dairy portions are balanced with the rest of your meal.)";
+            });
+        }
+
+        public static String getRecommendation(String category, boolean isIncrease, double gap) {
+            double absGap = Math.abs(gap);
+            Map<String, RecommendationFunction> selectedMap = isIncrease ? increaseRecommendations : decreaseRecommendations;
+            RecommendationFunction func = selectedMap.get(category);
+            return func != null ? func.getRecommendation(absGap) : "";
+        }
+
+        @FunctionalInterface
+        interface RecommendationFunction {
+            String getRecommendation(double absGap);
+        }
     }
 }

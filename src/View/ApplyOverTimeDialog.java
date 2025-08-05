@@ -138,114 +138,112 @@ public class ApplyOverTimeDialog extends JDialog {
 
     private void okAction(ActionEvent e) {
         if (dateRangeOption.isSelected()) {
-            // Validate and parse date range
-            try {
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-                sdf.setLenient(false); // Strict date parsing
-                
-                String startText = startDateField.getText().trim();
-                String endText = endDateField.getText().trim();
-                
-                // Check for empty fields
-                if (startText.isEmpty() || endText.isEmpty()) {
-                    JOptionPane.showMessageDialog(this, 
-                        "Both start date and end date are required.\nPlease use YYYY-MM-DD format.", 
-                        "Missing Date Information", 
-                        JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-                
-                // Parse dates
-                startDate = sdf.parse(startText);
-                endDate = sdf.parse(endText);
-                
-                // Validate date range
-                if (startDate.after(endDate)) {
-                    JOptionPane.showMessageDialog(this, 
-                        "Start date must be before or equal to end date.\n" +
-                        "Start: " + startText + "\n" +
-                        "End: " + endText, 
-                        "Invalid Date Range", 
-                        JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-                
-                // Check for very large date ranges (more than 5 years)
-                long daysDifference = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
-                if (daysDifference > (5 * 365)) {
-                    int result = JOptionPane.showConfirmDialog(this,
-                        "You've selected a very large date range (" + daysDifference + " days).\n" +
-                        "This may take a long time to process and affect many meals.\n" +
-                        "Are you sure you want to continue?",
-                        "Large Date Range Warning",
-                        JOptionPane.YES_NO_OPTION,
-                        JOptionPane.WARNING_MESSAGE);
-                    
-                    if (result != JOptionPane.YES_OPTION) {
-                        return;
-                    }
-                }
-                
-                // Check for future dates beyond reasonable range
-                Date now = new Date();
-                long futureLimit = now.getTime() + (365L * 24 * 60 * 60 * 1000); // 1 year from now
-                
-                if (endDate.getTime() > futureLimit) {
-                    int result = JOptionPane.showConfirmDialog(this,
-                        "End date is more than 1 year in the future.\n" +
-                        "This may not find any existing meals to modify.\n" +
-                        "Are you sure you want to continue?",
-                        "Future Date Warning",
-                        JOptionPane.YES_NO_OPTION,
-                        JOptionPane.WARNING_MESSAGE);
-                    
-                    if (result != JOptionPane.YES_OPTION) {
-                        return;
-                    }
-                }
-                
-                applyToAll = false;
-                
-            } catch (java.text.ParseException ex) {
-                // More specific error messages for different parse issues
-                String errorMessage;
-                if (ex.getMessage().contains("Unparseable")) {
-                    errorMessage = "Invalid date format detected.\n" +
-                                 "Please use exactly YYYY-MM-DD format.\n" +
-                                 "Examples: 2025-01-15, 2025-12-31\n\n" +
-                                 "Current input:\n" +
-                                 "Start: " + startDateField.getText() + "\n" +
-                                 "End: " + endDateField.getText();
-                } else {
-                    errorMessage = "Invalid date values.\n" +
-                                 "Please check that the dates are valid.\n" +
-                                 "Examples: 2025-02-29 is invalid (not a leap year)\n" +
-                                 "2025-13-01 is invalid (month 13 doesn't exist)";
-                }
-                
-                JOptionPane.showMessageDialog(this, 
-                    errorMessage, 
-                    "Date Format Error", 
-                    JOptionPane.ERROR_MESSAGE);
-                return;
-                
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, 
-                    "Unexpected error processing dates:\n" + ex.getMessage() + 
-                    "\n\nPlease use YYYY-MM-DD format.", 
-                    "Input Error", 
-                    JOptionPane.ERROR_MESSAGE);
-                return;
+            if (!validateAndParseDateRange()) {
+                return; // Stop if validation fails
             }
+            applyToAll = false;
         } else {
-            // Apply to all - use very wide date range
             applyToAll = true;
             startDate = new Date(0); // Unix epoch start
             endDate = new Date(Long.MAX_VALUE); // Far future
         }
-        
+
         confirmed = true;
         dispose();
+    }
+
+    private boolean validateAndParseDateRange() {
+        try {
+            String startText = startDateField.getText().trim();
+            String endText = endDateField.getText().trim();
+
+            if (isDateEmpty(startText, endText) || !parseDates(startText, endText) || !isDateRangeValid() || !confirmLargeDateRange() || !confirmFutureDate()) {
+                return false;
+            }
+
+            return true;
+        } catch (java.text.ParseException ex) {
+            handleParseException(ex);
+            return false;
+        } catch (Exception ex) {
+            handleGenericException(ex);
+            return false;
+        }
+    }
+
+    private boolean isDateEmpty(String startText, String endText) {
+        if (startText.isEmpty() || endText.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                "Both start date and end date are required.\nPlease use YYYY-MM-DD format.",
+                "Missing Date Information",
+                JOptionPane.ERROR_MESSAGE);
+            return true;
+        }
+        return false;
+    }
+
+    private boolean parseDates(String startText, String endText) throws java.text.ParseException {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        sdf.setLenient(false);
+        startDate = sdf.parse(startText);
+        endDate = sdf.parse(endText);
+        return true;
+    }
+
+    private boolean isDateRangeValid() {
+        if (startDate.after(endDate)) {
+            JOptionPane.showMessageDialog(this,
+                "Start date must be before or equal to end date.",
+                "Invalid Date Range",
+                JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+        return true;
+    }
+
+    private boolean confirmLargeDateRange() {
+        long daysDifference = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
+        if (daysDifference > (5 * 365)) {
+            int result = JOptionPane.showConfirmDialog(this,
+                "You've selected a very large date range (" + daysDifference + " days).\n" +
+                "This may take a long time to process and affect many meals.\n" +
+                "Are you sure you want to continue?",
+                "Large Date Range Warning",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE);
+            return result == JOptionPane.YES_OPTION;
+        }
+        return true;
+    }
+
+    private boolean confirmFutureDate() {
+        Date now = new Date();
+        long futureLimit = now.getTime() + (365L * 24 * 60 * 60 * 1000); // 1 year from now
+        if (endDate.getTime() > futureLimit) {
+            int result = JOptionPane.showConfirmDialog(this,
+                "End date is more than 1 year in the future.\n" +
+                "This may not find any existing meals to modify.\n" +
+                "Are you sure you want to continue?",
+                "Future Date Warning",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE);
+            return result == JOptionPane.YES_OPTION;
+        }
+        return true;
+    }
+
+    private void handleParseException(java.text.ParseException ex) {
+        String errorMessage = ex.getMessage().contains("Unparseable")
+            ? "Invalid date format detected.\nPlease use exactly YYYY-MM-DD format."
+            : "Invalid date values. Please check that the dates are valid.";
+        JOptionPane.showMessageDialog(this, errorMessage, "Date Format Error", JOptionPane.ERROR_MESSAGE);
+    }
+
+    private void handleGenericException(Exception ex) {
+        JOptionPane.showMessageDialog(this,
+            "Unexpected error processing dates:\n" + ex.getMessage(),
+            "Input Error",
+            JOptionPane.ERROR_MESSAGE);
     }
 
     private void styleButton(JButton button) {

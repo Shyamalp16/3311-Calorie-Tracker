@@ -102,6 +102,7 @@ public class MealDAO extends AbstractDAO<Meal> {
     public boolean updateMealItem(int mealId, int originalFoodId, int newFoodId, double newQuantity, String newUnit) {
         FoodDAO foodDAO = new FoodDAO();
         models.Food newFood = foodDAO.getFoodById(newFoodId).orElse(null);
+        String foodGroup = foodDAO.getFoodGroupById(newFoodId);
 
         if (newFood == null) {
             return false;
@@ -167,6 +168,8 @@ public class MealDAO extends AbstractDAO<Meal> {
         }
         return false;
     }
+
+    
 
     @Override
     protected void setParameters(PreparedStatement pstmt, Object... params) throws SQLException {

@@ -177,7 +177,6 @@ public class MealDAO extends AbstractDAO<Meal> {
             pstmt.setObject(i + 1, params[i]);
         }
     }
-
     @Override
     protected Meal parseResultSet(ResultSet rs) throws SQLException {
         return new Meal.Builder()
